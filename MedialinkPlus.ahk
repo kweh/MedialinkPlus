@@ -1,5 +1,17 @@
 ﻿SetTitleMatchMode,2
 DetectHiddenText, On
+
+
+/* 
+ 
+:------------------------------------------------:
+:  + ATT GÖRA									 :
+:------------------------------------------------:
+
+	Räkna markerade annonser.
+
+*/
+
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
@@ -1002,7 +1014,11 @@ Exponeringar: %mlExponeringar%
 		Run, %userFolder%bat.bat
 		Sleep, 150
 		WinWaitClose, C:\Windows\system32\cmd.exe
-		MsgBox, Färdig!
+		MsgBox,4,, Inbokning klar, öppna i webbläsaren?
+		IfMsgBox, Yes
+			run, https://cxad.cxense.com/adv/campaign/%campaignID%/overview
+		IfMsgBox, No
+			return
 	}
 	IfMsgBox No
 	{
