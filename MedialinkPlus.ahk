@@ -19,10 +19,14 @@ version = 1.5
 
 nyheterText =
 (
-+ Snabbade upp inbokningen av annonser i Cxense med ~2 sekunder och gjorde samtidigt scriptet säkrare. Win/win!
-+ Lade till Reach som typ vid bokning av annons.
-+ Fixade ett fel där skapandet av mail inte startade.
+
 )
+
+UpdateTip = 0
+
+
+
+
 
 Gosub, anvNamn
 
@@ -43,9 +47,11 @@ if !booted
 	}
 
 	; SPLASH
+	SetTimer, versionTimer, 5000
 	SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\mlp1_5.jpg, B
 	Sleep 3000
 	SplashImage, Off
+
 	; /SPLASH
 
 	; Läs version i ini
@@ -66,7 +72,6 @@ if !booted
 		MsgBox,4, Ny Version!, Det finns en ny version av MedialinkPlus!`nVill du hämta den?
 		IfMsgBox Yes
     		run, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus
-    		ExitApp
     	IfMsgBox No
     		return
 	}
@@ -137,6 +142,7 @@ $RButton::
 		menu, Status, add, Bearbetas, Bearbetas
 		menu, Status, Icon, Bearbetas, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\bearbetas.ico
 		menu, Status, add, Korrektur Skickat, KorrSkickat
+		menu, Status, add, Korrektur Klart, KorrKlart
 		menu, Status, add, Vilande, Vilande
 		menu, Status, add, Fler statusar..., FlerStatusar
 		menu, status, add, Tilldela ingen, TilldelaIngen
@@ -388,6 +394,16 @@ KorrSkickat:
 	FileAppend,
 	(
 		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Korrektur Skickat"`n
+	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
+	return
+
+
+KorrKlart:
+	Sleep, 50
+	Send, !s{TAB}akkkkk{TAB}{Enter}
+	FileAppend,
+	(
+		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Korrektur Klart"`n
 	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
 	return
 
@@ -1110,3 +1126,13 @@ productGET:
 
 TheEND:
 	return
+
+
+versionTimer:
+IniRead, masterVersion, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\master.ini, Version, Version, 0
+	versionCheck := masterVersion - ownVersion
+	if (versionCheck > 0 and UpdateTip = 0)
+	{
+		UpdateTip = 1
+		TrayTip, Ny version finns!, Det finns en ny version av MedialinkPlus tillgänglig!
+	}
