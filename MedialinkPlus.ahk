@@ -3,12 +3,13 @@ DetectHiddenText, On
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
-version = 1.4
+version = 1.5
 
 nyheterText =
 (
 + Snabbade upp inbokningen av annonser i Cxense med ~2 sekunder och gjorde samtidigt scriptet säkrare. Win/win!
 + Lade till Reach som typ vid bokning av annons.
++ Fixade ett fel där skapandet av mail inte startade.
 )
 
 Gosub, anvNamn
@@ -290,9 +291,7 @@ Korrmail:
 	(
 		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% mailade korrektur på %OrderNummer% till %epost%`n
 	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	WinActivate, Skickat
-	WinActivate, Inkorgen
-	WinActivate, Webbannons
+	WinActivate, Microsoft Outlook
 	Sleep, 100
 	Send, ^n
 	Sleep, 50
@@ -465,9 +464,7 @@ OK:
 		(
 			%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% mailade %epost% ang. felaktig order (%OrderNummer%) och satte den som  "Undersöks"`n
 		),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	WinActivate, Skickat
-	WinActivate, Inkorgen
-	WinActivate, Webbannons
+	WinActivate, Microsoft Outlook
 	Sleep, 100
 	Send, ^n
 	Sleep, 50
