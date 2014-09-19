@@ -837,7 +837,7 @@ curl -s -H "Content-type: text/xml" -u API.User:pass123 -X POST https://cxad.cxe
 		FileAppend, %xmlToRun%, %userFolder%xml.xml
 		Sleep, 100
 		Run, %userFolder%bat.bat
-		Sleep, 2000
+		WinWaitClose, C:\Windows\system32\cmd.exe
 		MsgBox,1,, Kund inlagd. Boka kampanj?
 		ifMsgBox, Cancel
 		{
@@ -884,6 +884,7 @@ curl -s -H "Content-type: text/xml" -u API.User:pass123 -X GET https://cxad.cxen
 )
 FileAppend, %batToRun%, %userFolder%bat.bat
 Run, %userFolder%bat.bat
+WinWaitClose, C:\Windows\system32\cmd.exe
 fileToCheck = %userFolder%xmlOut.xml
 Loop, 40
 {
@@ -963,7 +964,7 @@ Exponeringar: %mlExponeringar%
 		)
 		FileAppend, %batToRun%, %userFolder%bat.bat
 		Run, %userFolder%bat.bat
-		Sleep, 3000
+		WinWaitClose, C:\Windows\system32\cmd.exe
 		FileRead, xmlOut, %userFolder%xmlOut.xml
 		StringSplit, xmlSplit, xmlOut, >
 		StringSplit, xmlSplit, xmlSplit6, <
@@ -991,7 +992,7 @@ Exponeringar: %mlExponeringar%
 		)
 		FileAppend, %batToRun%, %userFolder%bat.bat
 		Run, %userFolder%bat.bat
-		Sleep, 2500
+		WinWaitClose, C:\Windows\system32\cmd.exe
 		MsgBox, Färdig!
 	}
 	IfMsgBox No
