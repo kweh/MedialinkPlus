@@ -7,8 +7,7 @@ version = 1.4
 
 nyheterText =
 (
-	Nu ska det gå att boka på annonser direkt från Medialink.
-	Högerklicka på en annons och välj "Boka annons"!
+Snabbade upp inbokningen av annonser i Cxense med ~2 sekunder och gjorde samtidigt scriptet säkrare. Win/win!
 )
 
 Gosub, anvNamn
@@ -841,6 +840,7 @@ curl -s -H "Content-type: text/xml" -u API.User:pass123 -X POST https://cxad.cxe
 		FileAppend, %xmlToRun%, %userFolder%xml.xml
 		Sleep, 100
 		Run, %userFolder%bat.bat
+		Sleep, 150
 		WinWaitClose, C:\Windows\system32\cmd.exe
 		MsgBox,1,, Kund inlagd. Boka kampanj?
 		ifMsgBox, Cancel
@@ -888,6 +888,7 @@ curl -s -H "Content-type: text/xml" -u API.User:pass123 -X GET https://cxad.cxen
 )
 FileAppend, %batToRun%, %userFolder%bat.bat
 Run, %userFolder%bat.bat
+Sleep, 150
 WinWaitClose, C:\Windows\system32\cmd.exe
 fileToCheck = %userFolder%xmlOut.xml
 Loop, 40
@@ -968,6 +969,7 @@ Exponeringar: %mlExponeringar%
 		)
 		FileAppend, %batToRun%, %userFolder%bat.bat
 		Run, %userFolder%bat.bat
+		Sleep, 150
 		WinWaitClose, C:\Windows\system32\cmd.exe
 		FileRead, xmlOut, %userFolder%xmlOut.xml
 		StringSplit, xmlSplit, xmlOut, >
@@ -996,6 +998,7 @@ Exponeringar: %mlExponeringar%
 		)
 		FileAppend, %batToRun%, %userFolder%bat.bat
 		Run, %userFolder%bat.bat
+		Sleep, 150
 		WinWaitClose, C:\Windows\system32\cmd.exe
 		MsgBox, Färdig!
 	}
