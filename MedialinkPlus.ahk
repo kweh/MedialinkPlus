@@ -7,7 +7,8 @@ version = 1.4
 
 nyheterText =
 (
-Snabbade upp inbokningen av annonser i Cxense med ~2 sekunder och gjorde samtidigt scriptet säkrare. Win/win!
++ Snabbade upp inbokningen av annonser i Cxense med ~2 sekunder och gjorde samtidigt scriptet säkrare. Win/win!
++ Lade till Reach som typ vid bokning av annons.
 )
 
 Gosub, anvNamn
@@ -869,7 +870,7 @@ return
 
 bokaCampaignCX:
 	Type = 0
-	Gui, Add, DropDownList, x4 y20 w158 h40 vType R3, Run On Site||Riktad|Plugg
+	Gui, Add, DropDownList, x4 y20 w158 h40 vType R4, Run On Site||Riktad|Plugg|Reach
 	Gui, Add, Button, x42 y50 w100 h30 gKor, OK
 	Gui, Show, x526 y224 h103 w190 , New GUI Window
 	return
@@ -895,7 +896,6 @@ Loop, 40
 {
 	if fileExist(fileToCheck)
 	{
-		Sleep, 3000
 		break
 	}
 	Sleep, 250
@@ -928,7 +928,11 @@ Gosub, productGET ; returnerar ProductID
 	campaign = %mlTidning% - %mlFormat% - %mlOrdernr%
 	if (Type = "Plugg")
 	{
-		campaign = %mlTidning% - %mlFormat% - Plugg - %mlOrdernr%
+		campaign = %mlTidning% - %mlFormat% - PLUGG - %mlOrdernr%
+	}
+	if (Type = "Reach")
+	{
+		campaign = %mlTidning% - REACH - %mlOrdernr%
 	}
 	xmlToRun =
 	(
@@ -1031,6 +1035,9 @@ productGET:
 	PluggPAN = 000000016020bf82
 	PluggWID = 000000016020bf85
 
+	;---- REACH
+	Reach = 000000015f460c65
+
 	if (mlFormat = "MOD" and Type = "Run On Site")
 	{
 		productID = %RosMOD%
@@ -1078,6 +1085,10 @@ productGET:
 	else if (mlFormat = "PAN" and Type = "Plugg")
 	{
 		productID = %PluggPAN%
+	}
+	if (Type = "Reach")
+	{
+		productID = %Reach%
 	}
 	return
 
