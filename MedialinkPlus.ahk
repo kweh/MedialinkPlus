@@ -15,11 +15,11 @@ DetectHiddenText, On
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
-version = 1.5
+version = 1.6
 
 nyheterText =
 (
-
++ Lade till "Korrektur Klart" i Status.
 )
 
 UpdateTip = 0
