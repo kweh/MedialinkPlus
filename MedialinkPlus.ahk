@@ -31,7 +31,7 @@ if !booted
 	}
 
 	; SPLASH
-	SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\mlp1_4.jpg, B
+	SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\mlp1_5.jpg, B
 	Sleep 3000
 	SplashImage, Off
 	; /SPLASH
