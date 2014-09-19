@@ -494,6 +494,8 @@ StartaAnnonsPS:
 	ControlGetText, datum, Static13, Atex MediaLink
 	StringReplace, datum, datum,-,,All
 	StringReplace, kund, kund,:,,All
+	StringReplace, kund, kund,\,,All
+	StringReplace, kund, kund,/,,All
 	StringTrimLeft,datum,datum,2
 	StringLen, tecken, kund
 	tecken := tecken - 1
@@ -525,6 +527,8 @@ StartaAnnonsFlash:
 	ControlGetText, datum, Static13, Atex MediaLink
 	StringReplace, datum, datum,-,,All
 	StringReplace, kund, kund,:,,All
+	StringReplace, kund, kund,\,,All
+	StringReplace, kund, kund,/,,All
 	StringTrimLeft,datum,datum,2
 	StringLen, tecken, kund
 	tecken := tecken - 1
