@@ -53,6 +53,7 @@ if !booted
 		MsgBox,4, Ny Version!, Det finns en ny version av MedialinkPlus!`nVill du hämta den?
 		IfMsgBox Yes
     		run, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus
+    		ExitApp
     	IfMsgBox No
     		return
 	}
