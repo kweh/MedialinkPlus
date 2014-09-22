@@ -20,6 +20,7 @@ version = 1.6
 nyheterText =
 (
 + Lade till "Korrektur Klart" i Status.
++ Popup för att gå direkt till inbokad annons i Cxense efter bokning.
 )
 
 UpdateTip = 0
@@ -635,7 +636,7 @@ getFormat:
 		mlFormat = MOD
 	}
 
-	if (format = "250 x 600")
+	if (format = "250 x 600" or format = "200 x 600")
 	{
 		mlFormat = OUT
 	}
@@ -843,7 +844,7 @@ CxenseBokning:
 	}
 	if (xmlPart = 0) ; Kund kunde inte hittas
 	{
-		MsgBox, 4, , Kund fanns inte. Skapa kund "%mlTidning% - %mlKundnr% - %mlKundnamn%"?
+		MsgBox, 4, Kund saknas, Kund fanns inte. Skapa kund "%mlTidning% - %mlKundnr% - %mlKundnamn%"?
 		IfMsgBox Yes 
 		{
 		FileDelete, %userFolder%bat.bat
@@ -869,7 +870,7 @@ curl -s -H "Content-type: text/xml" -u API.User:pass123 -X POST https://cxad.cxe
 		Run, %userFolder%bat.bat
 		Sleep, 150
 		WinWaitClose, C:\Windows\system32\cmd.exe
-		MsgBox,1,, Kund inlagd. Boka kampanj?
+		MsgBox,1, Kund inlagd, Kund inlagd. Boka kampanj?
 		ifMsgBox, Cancel
 		{
 			Goto, TheEND
@@ -898,7 +899,7 @@ bokaCampaignCX:
 	Type = 0
 	Gui, Add, DropDownList, x4 y20 w158 h40 vType R4, Run On Site||Riktad|Plugg|Reach
 	Gui, Add, Button, x42 y50 w100 h30 gKor, OK
-	Gui, Show, x526 y224 h103 w190 , New GUI Window
+	Gui, Show, x526 y224 h103 w190 , Välj typ
 	return
 
 
@@ -987,7 +988,7 @@ Campaign: %campaign%
 Start/Stoppdatum: %mlStartdatum% - %mlStoppdatum%
 Exponeringar: %mlExponeringar%
 )
-	MsgBox, 4,,%msgText%
+	MsgBox, 4, Bekräfta bokning, %msgText%
 	IfMsgBox Yes
 	{
 		FileDelete, %userFolder%bat.bat
@@ -1030,7 +1031,7 @@ Exponeringar: %mlExponeringar%
 		Run, %userFolder%bat.bat
 		Sleep, 150
 		WinWaitClose, C:\Windows\system32\cmd.exe
-		MsgBox,4,, Inbokning klar, öppna i webbläsaren?
+		MsgBox,4, Bokning klar, Inbokning klar, öppna i webbläsaren?
 		IfMsgBox, Yes
 			run, https://cxad.cxense.com/adv/campaign/%campaignID%/overview
 		IfMsgBox, No
