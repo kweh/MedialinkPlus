@@ -159,6 +159,7 @@ $RButton::
 		menu, Traffic, add, Öppna i AdBooker, OppnaAdBooker
 		menu, Traffic, add, Kontrollera printannonser, printBatch
 		menu, Traffic, add, Räkna exponeringar, raknaExponeringar
+		menu, Traffic, add, Räkna kampanjer, raknaValda
 		menu, Traffic, add, Manus på mail, ManusPaMail
 		menu, Traffic, add, Undersöks, Undersoks
 		menu, context, add, Traffic, :Traffic
@@ -731,6 +732,11 @@ raknaExponeringar:
 		}
 	}
 	msgbox, Totalt antal begärda exponeringar: %totExp%
+	return
+
+raknaValda:
+	ControlGet, antal, List, Count Selected, %control%, Atex MediaLink
+	Msgbox, %antal% kampanjer markerade.
 	return
 
 
