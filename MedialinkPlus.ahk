@@ -1,6 +1,6 @@
 ﻿SetTitleMatchMode,2
 DetectHiddenText, On
-
+#include cxuser.ahk
 
 /* 
  
@@ -883,7 +883,7 @@ CxenseBokning:
 (
 G:
 cd G:\NTM\NTM Digital Produktion\cURL\bin
-curl -s -H "Content-type: text/xml" -u API.User:pass123 -X POST https://cxad.cxense.com/api/secure/folder/advertising -d @%userFolder%xml.xml > %userFolder%create.xml
+curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/folder/advertising -d @%userFolder%xml.xml > %userFolder%create.xml
 
 )
 		FileAppend, %batToRun%, %userFolder%bat.bat
@@ -934,7 +934,7 @@ batToRun =
 (
 G:
 cd G:\NTM\NTM Digital Produktion\cURL\bin
-curl -s -H "Content-type: text/xml" -u API.User:pass123 -X GET https://cxad.cxense.com/api/secure/folder/advertising > %userFolder%xmlOut.xml
+curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/folder/advertising > %userFolder%xmlOut.xml
 )
 FileAppend, %batToRun%, %userFolder%bat.bat
 Run, %userFolder%bat.bat
@@ -1018,7 +1018,7 @@ Exponeringar: %mlExponeringar%
 		(
 		G:
 		cd G:\NTM\NTM Digital Produktion\cURL\bin
-		curl -s -H "Content-type: text/xml" -u API.User:pass123 -X POST https://cxad.cxense.com/api/secure/campaign/%xmlID% -d @%userFolder%xml.xml > %userFolder%xmlOut.xml
+		curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/campaign/%xmlID% -d @%userFolder%xml.xml > %userFolder%xmlOut.xml
 		)
 		FileAppend, %batToRun%, %userFolder%bat.bat
 		Run, %userFolder%bat.bat
@@ -1047,7 +1047,7 @@ Exponeringar: %mlExponeringar%
 		(
 		G:
 		cd G:\NTM\NTM Digital Produktion\cURL\bin
-		curl -s -H "Content-type: text/xml" -u API.User:pass123 -X POST https://cxad.cxense.com/api/secure/contract/%campaignID% -d @%userFolder%xml.xml > %userFolder%xmlOut.xml
+		curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/contract/%campaignID% -d @%userFolder%xml.xml > %userFolder%xmlOut.xml
 		)
 		FileAppend, %batToRun%, %userFolder%bat.bat
 		Run, %userFolder%bat.bat
