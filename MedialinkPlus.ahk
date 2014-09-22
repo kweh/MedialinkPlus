@@ -49,7 +49,7 @@ if !booted
 
 	; SPLASH
 	SetTimer, versionTimer, 5000
-	SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\mlp1_5.jpg, B
+	SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\mlp1_6.jpg, B
 	Sleep 3000
 	SplashImage, Off
 
@@ -790,6 +790,14 @@ getFromList:
 			mlKundnr = %listArr10%
 			mlKundnamn = %listArr11%
 		}
+	if (Anvandare = "mikaellu")
+		{
+			mlStartdatum = %listArr8%
+			mlStoppdatum = %listArr9%
+			mlExponeringar = %listArr12%
+			mlKundnr = %listArr13%
+			mlKundnamn = %listArr5%
+		}
 
 	}
 	return
@@ -823,6 +831,10 @@ PluggWID = 000000016020bf85
 
 CxenseBokning:
 	Gosub, getFromList			; mlStartdatum, mlStoppdatum, mlKundnr, mlExponeringar, mlKundnamn
+	StringReplace, mlKundnamn, mlKundnamn,:,,All
+	StringReplace, mlKundnamn, mlKundnamn,\,,All
+	StringReplace, mlKundnamn, mlKundnamn,/,,All
+	StringReplace, mlKundnamn, mlKundnamn,&&,,All
 	Gosub, getOrdernr			; mlOrdernr
 	Gosub, getTidning			; mlTidning
  	Gosub, getFormat			; mlFormat
@@ -866,6 +878,7 @@ CxenseBokning:
 G:
 cd G:\NTM\NTM Digital Produktion\cURL\bin
 curl -s -H "Content-type: text/xml" -u API.User:pass123 -X POST https://cxad.cxense.com/api/secure/folder/advertising -d @%userFolder%xml.xml > %userFolder%create.xml
+
 )
 		FileAppend, %batToRun%, %userFolder%bat.bat
 		FileAppend, %xmlToRun%, %userFolder%xml.xml
