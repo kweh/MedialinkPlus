@@ -580,6 +580,9 @@ OppnaKundmapp:
 	StringTrimLeft,datum,datum,2
 	StringLen, tecken, kund
 	tecken := tecken - 1
+	StringReplace, kund, kund,:,,All
+	StringReplace, kund, kund,\,,All
+	StringReplace, kund, kund,/,,All
 	StringTrimRight, forstaBokstavKundnamn, kund, %tecken%
 	filePath = G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%\%forstaBokstavKundnamn%\%kund%\
 	if fileExist(filePath)
