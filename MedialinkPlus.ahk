@@ -94,6 +94,39 @@ if !booted
 ; --------------- MENY --------------------
 ; -----------------------------------------
 
+~LButton::
+	if(A_PriorHotkey = A_ThisHotkey && A_TimeSincePriorHotkey < 300)
+	{
+		MouseGetPos, , , id, control
+		IfInString, control, SysListView
+		{
+			SLV = 1
+		} else {
+			SLV = 0
+		}
+		If ((WinActive("ahk_class wxWindowClassNR") and SLV = 1) or WinActive("ahk_class AutoHotkey"))
+		{
+			menu, lMenu, add, Klar, Klar
+			menu, lMenu, Icon, Klar, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\klar.ico
+			menu, lMenu, add, Bearbetas, Bearbetas
+			menu, lMenu, Icon, Bearbetas, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\bearbetas.ico
+			menu, lMenu, add, Korrektur Skickat, KorrSkickat
+			menu, lMenu, Icon, Korrektur Skickat, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\korr.ico
+			menu, lMenu, add, Korrektur Klart, KorrKlart
+			menu, lMenu, Icon, Korrektur Klart, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\korr.ico
+			menu, lMenu, add, Vilande, Vilande
+			menu, lMenu, Icon, Vilande, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\vilande.ico
+			menu, lMenu, add, Manus på mail, ManusPaMail
+			menu, lMenu, Icon, Manus på mail, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\vilande.ico
+			menu, lMenu, add, Undersöks, Undersoks
+			menu, lMenu, Icon, Undersöks, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\undersoks.ico
+			menu, lMenu, add, Arkiverad, Arkiverad
+			menu, lMenu, Icon, Arkiverad, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\arkiverad.ico
+			menu, lMenu, show
+		}
+	}
+	return
+
 $RButton::
 	MouseGetPos, , , id, control
 	IfInString, control, SysListView
@@ -437,6 +470,16 @@ Undersoks:
 		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Undersöks"`n
 	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
 	return
+
+Arkiverad:
+	Sleep, 50
+	Send, !s{TAB}a{TAB}{Enter}
+	FileAppend,
+	(
+		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Arkiverad"`n
+	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
+	return
+
 
 FlerStatusar:
 	Sleep, 50
@@ -804,6 +847,14 @@ getFromList:
 			mlKundnr = %listArr13%
 			mlKundnamn = %listArr5%
 		}
+	if (Anvandare = "dennisst")
+		{
+			mlStartdatum = %listArr6%
+			mlStoppdatum = %listArr7%
+			mlExponeringar = %listArr10%
+			mlKundnr = %listArr11%
+			mlKundnamn = %listArr12%
+		}
 
 	}
 	return
@@ -841,6 +892,7 @@ CxenseBokning:
 	StringReplace, mlKundnamn, mlKundnamn,\,,All
 	StringReplace, mlKundnamn, mlKundnamn,/,,All
 	StringReplace, mlKundnamn, mlKundnamn,&&,,All
+	StringReplace, mlKundnamn, mlKundnamn,&,,All
 	Gosub, getOrdernr			; mlOrdernr
 	Gosub, getTidning			; mlTidning
  	Gosub, getFormat			; mlFormat
@@ -921,7 +973,7 @@ bokaCampaignCX:
 	Type = 0
 	Gui, Add, DropDownList, x4 y20 w158 h40 vType R4, Run On Site||Riktad|Plugg|Reach
 	Gui, Add, Button, x42 y50 w100 h30 gKor, OK
-	Gui, Show, x526 y224 h103 w190 , Välj typ
+	Gui, Show, xCenter yCenter h103 w190 , Välj typ
 	return
 
 
