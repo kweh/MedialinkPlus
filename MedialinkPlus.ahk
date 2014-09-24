@@ -1,7 +1,7 @@
 ﻿SetTitleMatchMode,2
 DetectHiddenText, On
 #include cxuser.ahk
-
+#persistent
 /* 
  
 :------------------------------------------------:
@@ -36,6 +36,7 @@ Gosub, anvNamn
 ; -----------------------------------------
 
 if !booted
+
 	mlpDir = %A_AppData%\MLP
 	mlpSettings = %mlpDir%\settings.ini
 	if fileExist(mlpSettings)
@@ -122,6 +123,8 @@ if !booted
 			menu, lMenu, Icon, Undersöks, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\undersoks.ico
 			menu, lMenu, add, Arkiverad, Arkiverad
 			menu, lMenu, Icon, Arkiverad, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\arkiverad.ico
+			menu, lMenu, add, Ny, Ny
+			menu, lMenu, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\ny.ico
 			menu, lMenu, show
 		}
 	}
@@ -171,14 +174,24 @@ $RButton::
 	    ;menu, context, add, Skapa egen notering, skapaNotering
 
 		; SUBMENY 'STATUS'
-		menu, Status, add, Klar, Klar
-		menu, Status, Icon, Klar, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\klar.ico
-		menu, Status, add, Bearbetas, Bearbetas
-		menu, Status, Icon, Bearbetas, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\bearbetas.ico
-		menu, Status, add, Korrektur Skickat, KorrSkickat
-		menu, Status, add, Korrektur Klart, KorrKlart
-		menu, Status, add, Vilande, Vilande
-		menu, Status, add, Fler statusar..., FlerStatusar
+		menu, status, add, Klar, Klar
+		menu, status, Icon, Klar, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\klar.ico
+		menu, status, add, Bearbetas, Bearbetas
+		menu, status, Icon, Bearbetas, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\bearbetas.ico
+		menu, status, add, Korrektur Skickat, KorrSkickat
+		menu, status, Icon, Korrektur Skickat, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\korr.ico
+		menu, status, add, Korrektur Klart, KorrKlart
+		menu, status, Icon, Korrektur Klart, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\korr.ico
+		menu, status, add, Vilande, Vilande
+		menu, status, Icon, Vilande, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\vilande.ico
+		menu, status, add, Manus på mail, ManusPaMail
+		menu, status, Icon, Manus på mail, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\vilande.ico
+		menu, status, add, Undersöks, Undersoks
+		menu, status, Icon, Undersöks, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\undersoks.ico
+		menu, status, add, Arkiverad, Arkiverad
+		menu, status, Icon, Arkiverad, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\arkiverad.ico
+		menu, lMenu, add, Ny, Ny
+		menu, lMenu, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\ny.ico
 		menu, status, add, Tilldela ingen, TilldelaIngen
 		menu, status, add, Tilldela..., Tilldela
 		menu, context, add, Statusar, :Status
@@ -480,6 +493,15 @@ Arkiverad:
 	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
 	return
 
+Ny:
+	Sleep, 50
+	Send, !s{TAB}n{TAB}{Enter}
+	FileAppend,
+	(
+		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Ny"`n
+	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
+	return
+
 
 FlerStatusar:
 	Sleep, 50
@@ -758,20 +780,37 @@ return
 
 raknaExponeringar:
 	send, {esc}
+	Gosub, anvNamn
 	sleep, 150
 	ControlGet, exponeringar, List, Selected, %control%, Atex MediaLink
 	sleep, 100
 	ControlGet, antal, List, Count Selected, %control%, Atex MediaLink
 	totExp = 0
 	count = 0
-	Loop, Parse, exponeringar, `n
+	if (Anvandare = "martinve")
 	{
-		StringSplit, expCount, A_LoopField, `t
-		totExp := totExp + expCount14
-		count++
-		if (count = antal)
+		Loop, Parse, exponeringar, `n
 		{
-			break
+			StringSplit, expCount, A_LoopField, `t
+			totExp := totExp + expCount13
+
+			count++
+			if (count = antal)
+			{
+				break
+			}
+		}
+	} else {
+		Loop, Parse, exponeringar, `n
+		{
+			StringSplit, expCount, A_LoopField, `t
+			totExp := totExp + expCount14
+
+			count++
+			if (count = antal)
+			{
+				break
+			}
 		}
 	}
 	msgbox, Totalt antal begärda exponeringar: %totExp%
@@ -815,6 +854,7 @@ getFromList:
 	mlExponeringar = %listArr14%
 	mlKundnr = %listArr15%
 	mlKundnamn = %listArr16%
+	Gosub, anvNamn
 	if (Anvandare = "martinve")
 		{
 			mlStartdatum = %listArr9%
