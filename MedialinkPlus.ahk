@@ -16,12 +16,13 @@ DetectHiddenText, On
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
-version = 1.7
+version = 1.71
 
 nyheterText =
 (
 + Dubbelcklicka på en order för snabbstatus
 + Löste ett problem med &-tecken i kundnamn
++ Nytt gränssnitt vid bokning av annons i cxense
 )
 
 UpdateTip = 0
@@ -110,7 +111,7 @@ if !booted
 		{
 			menu, lMenu, add, Klar, Klar
 			menu, lMenu, Icon, Klar, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\klar.ico
-			menu, lMenu, add, Bearbetas, Bearbetas
+			menu, lMenu, add, Bearbetas, TilldelaBearbeta
 			menu, lMenu, Icon, Bearbetas, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\bearbetas.ico
 			menu, lMenu, add, Korrektur Skickat, KorrSkickat
 			menu, lMenu, Icon, Korrektur Skickat, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\korr.ico
@@ -1075,6 +1076,7 @@ bokaKampanjCX:
 	FileAppend, %xmlToRun%, %userFolder%xml.xml
 	StringReplace, mlStartdatumStrip, mlStartdatum, - ,, All
 	StringReplace, mlStoppdatumStrip, mlStoppdatum, - ,, All
+	StringTrimLeft, mlStartdatumStripYY, mlStartdatumStrip, 2
 
 	; -- NY BOKNINGSMENY
 	Gui, Add, GroupBox, x12 y10 w420 h180 , Bokningsöversikt
@@ -1092,7 +1094,7 @@ bokaKampanjCX:
 	Gui, Add, Edit, x142 y160 w280 h20 vmlExponeringar, %mlExponeringar%
 	Gui, Add, Button, x332 y200 w100 h30 gAvbryt, Avbryt
 	Gui, Add, Button, x222 y200 w100 h30 gBokningOK, OK
-	Gui, Show, x476 y306 h250 w451, New GUI Window
+	Gui, Show, x476 y306 h250 w451, Bokningsöversikt
 	Return
 
 BokningOK:
@@ -1165,7 +1167,7 @@ BokningOK:
 (
 <?xml version="1.0" encoding="UTF-8"?>
 <cx:ad xmlns:cx="http://cxense.com/cxad/api/cxad">
-  <cx:name>%mlKundnamn% - %mlStartdatum%</cx:name>
+  <cx:name>%mlKundnamn% - %mlStartdatumStripYY%</cx:name>
 </cx:ad>
 )
 		batToRun = 
