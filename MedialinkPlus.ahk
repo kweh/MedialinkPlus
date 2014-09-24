@@ -8,19 +8,20 @@ DetectHiddenText, On
 :  + ATT GÖRA									 :
 :------------------------------------------------:
 
-	Räkna markerade annonser.
+	+	Ny popup för inbokning av annonser
+		med fritextfält för information.
 
 */
 
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
-version = 1.6
+version = 1.7
 
 nyheterText =
 (
-+ Lade till "Korrektur Klart" i Status.
-+ Popup för att gå direkt till inbokad annons i Cxense efter bokning.
++ Dubbelcklicka på en order för snabbstatus
++ Löste ett problem med &-tecken i kundnamn
 )
 
 UpdateTip = 0
@@ -50,7 +51,7 @@ if !booted
 
 	; SPLASH
 	SetTimer, versionTimer, 5000
-	SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\mlp1_6.jpg, B
+	SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\mlp1_7.jpg, B
 	Sleep 3000
 	SplashImage, Off
 
@@ -130,7 +131,7 @@ if !booted
 	}
 	return
 
-$RButton::
+~RButton::
 	MouseGetPos, , , id, control
 	IfInString, control, SysListView
 	{
@@ -138,15 +139,13 @@ $RButton::
 	} else {
 		SLV = 0
 	}
-	If ((WinActive("ahk_class wxWindowClassNR") and SLV = 1) or WinActive("ahk_class AutoHotkey"))
-	{	
-		Click, right
+	If ((WinActive("ahk_class wxWindowClassNR") and SLV = 1))
+	{
+	    Click, right
 		Send, {Esc}
 		Gosub, printCheck ; Kollar om print finns - sätter 'printExist'
 		Gosub, KundOrder  ; Hämtar kundnamn och ordernummer och placerar i 'KundOchOrdernummer'	
 		Gosub, anvNamn
-
-
 		menu, context, add, &Hitta Print-PDF, printGet		; Lägger till "Hitta Print-PDF" i menyn
 		menu, context, Icon, &Hitta Print-PDF, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\check.ico
 		if (printExist = 0)
@@ -199,7 +198,6 @@ $RButton::
 		;menu, context, add,
 		menu, context, add, Skicka Korrmail (Ansv. säljare), Korrmail
 		menu, context, Icon, Skicka Korrmail (Ansv. säljare), c:\Windows\system32\SHELL32.dll, 157
-
 		menu, Traffic, add, Felaktig order, FelaktigOrder
 		menu, Traffic, Icon, Felaktig order, c:\Windows\system32\SHELL32.dll, 110
 		menu, Traffic, add, Öppna i AdBooker, OppnaAdBooker
@@ -211,11 +209,9 @@ $RButton::
 		menu, context, add, Traffic, :Traffic
 		menu, context, Icon, Traffic, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\traffic.ico
 		Menu, context, Show						; Visar menyn
-
-		return
-	} else{
-		Click right
-		return
+		return	
+	} else {
+		Click, right
 	}
 return
 
@@ -830,7 +826,7 @@ BokaCX:
 	FileCreateDir, %A_AppData%\AHK
 	userFolder = %A_AppData%\AHK\
 	Gosub, CxenseBokning
-	Gosub, bokaCampaignCX
+	Gosub, bokaKampanjCX
 	return
 
 
@@ -1009,12 +1005,12 @@ curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/
 return
 
 
-bokaCampaignCX:
-	Type = 0
-	Gui, Add, DropDownList, x4 y20 w158 h40 vType R4, Run On Site||Riktad|Plugg|Reach
-	Gui, Add, Button, x42 y50 w100 h30 gKor, OK
-	Gui, Show, xCenter yCenter h103 w190 , Välj typ
-	return
+;bokaCampaignCX:
+;	Type = 0
+;	Gui, Add, DropDownList, x4 y20 w158 h40 vType R4, Run On Site||Riktad|Plugg|Reach
+;	Gui, Add, Button, x42 y50 w100 h30 gBokaKampanj, OK
+;	Gui, Show, xCenter yCenter h103 w190 , Välj typ
+;	return
 
 
 
@@ -1060,11 +1056,7 @@ return
 	MsgBox, ID: %campaignID%
 
 
-Kor:
-	Gui, Submit
-	Gui, Destroy
-
-Gosub, productGET ; returnerar ProductID
+bokaKampanjCX:
 	advertisingFolder = %mlTidning% - %mlKundnr% - %mlKundnamn%
 	campaign = %mlTidning% - %mlFormat% - %mlOrdernr%
 	if (Type = "Plugg")
@@ -1075,7 +1067,40 @@ Gosub, productGET ; returnerar ProductID
 	{
 		campaign = %mlTidning% - REACH - %mlOrdernr%
 	}
-	xmlToRun =
+	
+	;---- XML
+	FileDelete, %userFolder%xml.xml
+	FileDelete, %userFolder%xmlOut.xml
+	Sleep, 500
+	FileAppend, %xmlToRun%, %userFolder%xml.xml
+	StringReplace, mlStartdatumStrip, mlStartdatum, - ,, All
+	StringReplace, mlStoppdatumStrip, mlStoppdatum, - ,, All
+
+	; -- NY BOKNINGSMENY
+	Gui, Add, GroupBox, x12 y10 w420 h180 , Bokningsöversikt
+	Gui, Add, Text, x22 y40 w80 h20 , Typ:
+	Gui, Add, DropDownList, x142 y40 w120 h20 vType R4, Run On Site||Riktad|Plugg|Reach
+	Gui, Add, Text, x22 y70 w100 h20 , Advertising Folder:
+	Gui, Add, Edit, x142 y70 w280 h20 vadvertisingFolder, %advertisingFolder%
+	Gui, Add, Text, x22 y100 w100 h20 , Campaign:
+	Gui, Add, Edit, x142 y100 w280 h20 vcampaign, %campaign%
+	Gui, Add, Text, x22 y130 w110 h20 , Start- och stoppdatum:
+	Gui, Add, DateTime, x142 y130 w120 h20 vmlStartdatum Choose%mlStartdatumStrip%, yyyy-MM-dd
+	Gui, Add, Text, x282 y130 w10 h20 , -
+	Gui, Add, DateTime, x302 y130 w120 h20 vmlStoppdatum Choose%mlStoppdatumStrip%, yyyy-MM-dd
+	Gui, Add, Text, x22 y160 w100 h20 , Exponeringar:
+	Gui, Add, Edit, x142 y160 w280 h20 vmlExponeringar, %mlExponeringar%
+	Gui, Add, Button, x332 y200 w100 h30 gAvbryt, Avbryt
+	Gui, Add, Button, x222 y200 w100 h30 gBokningOK, OK
+	Gui, Show, x476 y306 h250 w451, New GUI Window
+	Return
+
+BokningOK:
+		Gui, Submit
+		Gui, Destroy
+		Gosub, productGET ; returnerar ProductID
+
+		xmlToRun =
 	(
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cx:campaign xmlns:cx="http://cxense.com/cxad/api/cxad" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -1087,40 +1112,28 @@ Gosub, productGET ; returnerar ProductID
 	</cx:perUserCap>
 </cx:campaign>
 	)
-
-	;---- XML
+	FormatTime, mlStartdatum, %mlStartdatum%, yyyy-MM-dd
+	FormatTime, mlStoppdatum, %mlStoppdatum%, yyyy-MM-dd
 	FileDelete, %userFolder%xml.xml
 	FileDelete, %userFolder%xmlOut.xml
 	Sleep, 500
 	FileAppend, %xmlToRun%, %userFolder%xml.xml
-	msgText = 
-(
-OK att boka?
-Typ: %Type%
-Advertising Folder: %advertisingFolder%
-Campaign: %campaign%
-Start/Stoppdatum: %mlStartdatum% - %mlStoppdatum%
-Exponeringar: %mlExponeringar%
-)
-	MsgBox, 4, Bekräfta bokning, %msgText%
-	IfMsgBox Yes
-	{
-		FileDelete, %userFolder%bat.bat
-		batToRun = 
-		(
-		G:
-		cd G:\NTM\NTM Digital Produktion\cURL\bin
-		curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/campaign/%xmlID% -d @%userFolder%xml.xml > %userFolder%xmlOut.xml
-		)
-		FileAppend, %batToRun%, %userFolder%bat.bat
-		Run, %userFolder%bat.bat
-		Sleep, 150
-		WinWaitClose, C:\Windows\system32\cmd.exe
-		FileRead, xmlOut, %userFolder%xmlOut.xml
-		StringSplit, xmlSplit, xmlOut, >
-		StringSplit, xmlSplit, xmlSplit6, <
-		campaignID = %xmlSplit1% ; campaignID innehåller kampanjens ID
-		xmlToRun = 
+	FileDelete, %userFolder%bat.bat
+	batToRun = 
+	(
+	G:
+	cd G:\NTM\NTM Digital Produktion\cURL\bin
+	curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/campaign/%xmlID% -d @%userFolder%xml.xml > %userFolder%xmlOut.xml
+	)
+	FileAppend, %batToRun%, %userFolder%bat.bat
+	Run, %userFolder%bat.bat
+	Sleep, 150
+	WinWaitClose, C:\Windows\system32\cmd.exe
+	FileRead, xmlOut, %userFolder%xmlOut.xml
+	StringSplit, xmlSplit, xmlOut, >
+	StringSplit, xmlSplit, xmlSplit6, <
+	campaignID = %xmlSplit1% ; campaignID innehåller kampanjens ID
+	xmlToRun = 
 (
 <?xml version="1.0" encoding="utf-8"?>
 <cx:cpmContract xmlns:cx="http://cxense.com/cxad/api/cxad">
@@ -1131,6 +1144,7 @@ Exponeringar: %mlExponeringar%
 <cx:costPerThousand class="currency" currencyCode="SEK" value="50.00"/>
 </cx:cpmContract>
 )
+		
 		FileDelete, %userFolder%xml.xml
 		FileAppend, %xmlToRun%, %userFolder%xml.xml
 		sleep, 100
@@ -1143,25 +1157,40 @@ Exponeringar: %mlExponeringar%
 		)
 		FileAppend, %batToRun%, %userFolder%bat.bat
 		Run, %userFolder%bat.bat
-		Sleep, 150
+		Sleep, 500
+		
+		FileDelete, %userFolder%xml.xml
+		FileDelete, %userFolder%bat.bat
+		xmlToRun = 
+(
+<?xml version="1.0" encoding="UTF-8"?>
+<cx:ad xmlns:cx="http://cxense.com/cxad/api/cxad">
+  <cx:name>%mlKundnamn% - %mlStartdatum%</cx:name>
+</cx:ad>
+)
+		batToRun = 
+(
+G:
+cd G:\NTM\NTM Digital Produktion\cURL\bin
+curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/ad/%campaignID% -d @%userFolder%xml.xml
+)
+	
+		FileAppend, %xmlToRun%, %userFolder%xml.xml
+		FileAppend, %batToRun%, %userFolder%bat.bat
+		Run, %userFolder%bat.bat
+		Sleep, 100
 		WinWaitClose, C:\Windows\system32\cmd.exe
 		MsgBox,4, Bokning klar, Inbokning klar, öppna i webbläsaren?
 		IfMsgBox, Yes
 			run, https://cxad.cxense.com/adv/campaign/%campaignID%/overview
 		IfMsgBox, No
 			return
-	}
-	IfMsgBox No
-	{
-		return
-	}
 	return
 
 return
 
 
 productGET:
-
 	;---- Riktade
 	RiktadMOD = 00000001609df500
 	RiktadOUT = 00000001609df509
@@ -1235,9 +1264,12 @@ productGET:
 	{
 		productID = %Reach%
 	}
+return
+
+
+Avbryt:
+	Gui, Destroy
 	return
-
-
 
 TheEND:
 	return
