@@ -8,21 +8,18 @@ DetectHiddenText, On
 :  + ATT GÖRA									 :
 :------------------------------------------------:
 
-	+	Ny popup för inbokning av annonser
-		med fritextfält för information.
 
 */
 
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
-version = 1.71
+version = 1.77
 
 nyheterText =
 (
-+ Dubbelcklicka på en order för snabbstatus
-+ Löste ett problem med &-tecken i kundnamn
-+ Nytt gränssnitt vid bokning av annons i cxense
++ Lade till 468x360 i listan över Moduler.
++ Småfix
 )
 
 UpdateTip = 0
@@ -212,7 +209,7 @@ if !booted
 		Menu, context, Show						; Visar menyn
 		return	
 	} else {
-		Click, right
+
 	}
 return
 
@@ -702,6 +699,11 @@ getFormat:
 		mlFormat = MOD
 	}
 
+	if (format = "468 x 360" or format = "468 x 480")
+	{
+		mlFormat = MOD
+	}
+
 	if (format = "250 x 600" or format = "200 x 600")
 	{
 		mlFormat = OUT
@@ -1069,7 +1071,8 @@ bokaKampanjCX:
 		campaign = %mlTidning% - REACH - %mlOrdernr%
 	}
 	
-	;---- XML
+	;---- Preset
+	Type = 0
 	FileDelete, %userFolder%xml.xml
 	FileDelete, %userFolder%xmlOut.xml
 	Sleep, 500
@@ -1116,6 +1119,7 @@ BokningOK:
 	)
 	FormatTime, mlStartdatum, %mlStartdatum%, yyyy-MM-dd
 	FormatTime, mlStoppdatum, %mlStoppdatum%, yyyy-MM-dd
+	Gosub, CPMcheck
 	FileDelete, %userFolder%xml.xml
 	FileDelete, %userFolder%xmlOut.xml
 	Sleep, 500
@@ -1143,10 +1147,9 @@ BokningOK:
 <cx:endDate>%mlStoppdatum%T23:59:59.000+02:00</cx:endDate>
 <cx:priority>0.50</cx:priority>
 <cx:requiredImpressions>%mlExponeringar%</cx:requiredImpressions>
-<cx:costPerThousand class="currency" currencyCode="SEK" value="50.00"/>
+<cx:costPerThousand class="currency" currencyCode="SEK" value="%CPM%"/>
 </cx:cpmContract>
 )
-		
 		FileDelete, %userFolder%xml.xml
 		FileAppend, %xmlToRun%, %userFolder%xml.xml
 		sleep, 100
@@ -1268,6 +1271,24 @@ productGET:
 	}
 return
 
+CPMcheck:
+if (Type = "Plugg")
+{
+	CPM = 50.00
+} 
+else if (Type = "Riktad")
+{
+	CPM = 150.00
+}
+else if (Type = "Run On Site")
+{
+	CPM = 100.00
+}
+else if (Type = "Reach")
+{
+	CPM = 100.00
+}
+return
 
 Avbryt:
 	Gui, Destroy
