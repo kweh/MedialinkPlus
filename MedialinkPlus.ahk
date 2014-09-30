@@ -14,12 +14,11 @@ DetectHiddenText, On
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
-version = 1.77
+version = 1.78
 
 nyheterText =
 (
-+ Lade till 468x360 i listan över Moduler.
-+ Småfix
++ Lade till säkerhetskoll innan bokning för att minska risken att man bokar fel format/kund
 )
 
 UpdateTip = 0
@@ -124,6 +123,10 @@ if !booted
 			menu, lMenu, Icon, Arkiverad, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\arkiverad.ico
 			menu, lMenu, add, Ny, Ny
 			menu, lMenu, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\ny.ico
+			menu, lMenu, add, Repetition, Repetition
+			menu, lMenu, Icon, Repetition, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\rep.ico
+			menu, lMenu, add, Lev. Färdig, LevFardig
+			menu, lMenu, Icon, Lev. Färdig, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\fardig.ico
 			menu, lMenu, show
 		}
 	}
@@ -187,8 +190,12 @@ if !booted
 		menu, status, Icon, Undersöks, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\undersoks.ico
 		menu, status, add, Arkiverad, Arkiverad
 		menu, status, Icon, Arkiverad, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\arkiverad.ico
-		menu, lMenu, add, Ny, Ny
-		menu, lMenu, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\ny.ico
+		menu, status, add, Ny, Ny
+		menu, status, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\ny.ico
+		menu, status, add, Repetition, Repetition
+		menu, status, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\rep.ico
+		menu, status, add, Lev. Färdig, LevFardig
+		menu, status, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\fardig.ico
 		menu, status, add, Tilldela ingen, TilldelaIngen
 		menu, status, add, Tilldela..., Tilldela
 		menu, context, add, Statusar, :Status
@@ -496,6 +503,23 @@ Ny:
 	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
 	return
 
+Repetition:
+	Sleep, 50
+	Send, !s{TAB}rr{TAB}{Enter}
+	FileAppend,
+	(
+		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Repetition"`n
+	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
+	return
+
+LevFardig:
+	Sleep, 50
+	Send, !s{TAB}l{TAB}{Enter}
+	FileAppend,
+	(
+		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Lev. Färdig"`n
+	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
+	return
 
 FlerStatusar:
 	Sleep, 50
@@ -1009,7 +1033,6 @@ curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/
 			StringSplit, xmlSplit, xmlCreate, >
 			StringSplit, xmlSplit, xmlSplit6, <
 			xmlID = %xmlSplit1% ; xmlID innehåller kundens ID
-			return
 		}
 		return
 		}
