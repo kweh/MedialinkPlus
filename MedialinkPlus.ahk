@@ -828,10 +828,19 @@ raknaValda:
 BokaCX:
 	FileCreateDir, %A_AppData%\AHK
 	userFolder = %A_AppData%\AHK\
-	Gosub, CxenseBokning
-	Gosub, bokaKampanjCX
-	return
+	; VARIABLE RESET
+	mlStartdatum = 0
+	mlStoppdatum = 0
+	mlExponeringar = 0
+	mlKundnr = 0
+	mlKundnamn = 0
+	mlOrdernr = 0
+	mlTidning = 0
+	mlFormat = 0
 
+
+	Gosub, CxenseBokning
+	return
 
 getOrdernr:
 	Sleep, 50
@@ -936,6 +945,12 @@ CxenseBokning:
 	Gosub, getTidning			; mlTidning
  	Gosub, getFormat			; mlFormat
 	Gosub, xmlGET
+	if (mlFormat = 0 || mlKundnamn = 0 || mlOrdernr = 0 || mlTidning = 0)
+	{
+		MsgBox, 0, Eeeh.. oops., Något har gått snett, prova igen!
+		Goto, TheEND
+	}
+
 	FileRead, xmlOut, %userFolder%xmlOut.xml
 	StringReplace, xmlOut, xmlOut, <cx:childFolder>, +, A
 	xmlPart = 0
@@ -1002,8 +1017,10 @@ curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/
 		{
 			Goto, TheEND
 		}
+		Goto, bokaKampanjCX
 	return
 	}
+	Goto, bokaKampanjCX
 	Return
 return
 
