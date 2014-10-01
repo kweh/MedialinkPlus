@@ -14,11 +14,11 @@ DetectHiddenText, On
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
-version = 1.78
+version = 1.785
 
 nyheterText =
 (
-+ Lade till säkerhetskoll innan bokning för att minska risken att man bokar fel format/kund
++ Automatinbokningen visar nu felmeddelande om startdatumet har passerat och justerar detta automagiskt.
 )
 
 UpdateTip = 0
@@ -974,6 +974,7 @@ CxenseBokning:
 		MsgBox, 0, Eeeh.. oops., Något har gått snett, prova igen!
 		Goto, TheEND
 	}
+	checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
 
 	FileRead, xmlOut, %userFolder%xmlOut.xml
 	StringReplace, xmlOut, xmlOut, <cx:childFolder>, +, A
@@ -981,7 +982,7 @@ CxenseBokning:
 	Loop, Parse, xmlOut, +
 	{
 		xmlIndex++
-		if InStr(A_LoopField, mlKundnr)
+		if InStr(A_LoopField, checkKundNR)
 		{
 			xmlPart = %A_LoopField%
 			break
@@ -1033,6 +1034,7 @@ curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/
 			StringSplit, xmlSplit, xmlCreate, >
 			StringSplit, xmlSplit, xmlSplit6, <
 			xmlID = %xmlSplit1% ; xmlID innehåller kundens ID
+			Goto, bokaKampanjCX
 		}
 		return
 		}
@@ -1102,14 +1104,6 @@ return
 bokaKampanjCX:
 	advertisingFolder = %mlTidning% - %mlKundnr% - %mlKundnamn%
 	campaign = %mlTidning% - %mlFormat% - %mlOrdernr%
-	if (Type = "Plugg")
-	{
-		campaign = %mlTidning% - %mlFormat% - PLUGG - %mlOrdernr%
-	}
-	if (Type = "Reach")
-	{
-		campaign = %mlTidning% - REACH - %mlOrdernr%
-	}
 	
 	;---- Preset
 	Type = 0
@@ -1120,6 +1114,13 @@ bokaKampanjCX:
 	StringReplace, mlStartdatumStrip, mlStartdatum, - ,, All
 	StringReplace, mlStoppdatumStrip, mlStoppdatum, - ,, All
 	StringTrimLeft, mlStartdatumStripYY, mlStartdatumStrip, 2
+	FormatTime, idag, , yyyyMMdd
+	checkDate := mlStartdatumStrip - idag
+	if (checkDate < 0)
+	{
+		MsgBox,48,Fel i startdatum, Startdatumet på kampanjen har redan passerat. `r`nDagens datum har satts som startdatum istället.
+		mlStartdatumStrip = %idag%
+	}
 
 	; -- NY BOKNINGSMENY
 	Gui, Add, GroupBox, x12 y10 w420 h180 , Bokningsöversikt
@@ -1137,13 +1138,21 @@ bokaKampanjCX:
 	Gui, Add, Edit, x142 y160 w280 h20 vmlExponeringar, %mlExponeringar%
 	Gui, Add, Button, x332 y200 w100 h30 gAvbryt, Avbryt
 	Gui, Add, Button, x222 y200 w100 h30 gBokningOK, OK
-	Gui, Show, x476 y306 h250 w451, Bokningsöversikt
+	Gui, Show, xCenter yCenter h250 w451, Bokningsöversikt
 	Return
 
 BokningOK:
 		Gui, Submit
 		Gui, Destroy
 		Gosub, productGET ; returnerar ProductID
+		if (Type = "Plugg")
+		{
+			campaign = %mlTidning% - %mlFormat% - PLUGG - %mlOrdernr%
+		}
+		if (Type = "Reach")
+		{
+			campaign = %mlTidning% - REACH - %mlOrdernr%
+		}
 
 		xmlToRun =
 	(
