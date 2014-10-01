@@ -713,7 +713,7 @@ getFormat:
 		mlFormat = WID
 	}
 
-	if (format = "980 x 120" or format = "980 x 240")
+	if (format = "980 x 120" or format = "980 x 240" or format = "980 x 480")
 	{
 		mlFormat = PAN
 	}
