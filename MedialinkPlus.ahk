@@ -14,11 +14,11 @@ Automatisk kontroll av flik vid automatinbokning.
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
-version = 1.785
+version = 1.795
 
 nyheterText =
 (
-+ Automatinbokningen visar nu felmeddelande om startdatumet har passerat och justerar detta automagiskt.
++ Lade till stöd för Gotland.net
 )
 
 UpdateTip = 0
@@ -699,6 +699,10 @@ getTidning:
 	{
 		mlTidning = NTFB
 	}
+	IfInString, tidning, gotland.net
+	{
+		mlTidning = GN
+	}
 	return
 
 getFormat:
@@ -756,6 +760,16 @@ getFormat:
 	if (format = "512 x 128")
 	{
 		mlFormat = 512
+	}
+
+	if (format = "180 x 180")
+	{
+		mlFormat = 180
+	}
+
+	if (format = "380 x 280")
+	{
+		mlFormat = 380
 	}
 	return
 
@@ -972,6 +986,7 @@ CxenseBokning:
 	if (mlFormat = 0 || mlKundnamn = 0 || mlOrdernr = 0 || mlTidning = 0)
 	{
 		MsgBox, 48, Eeeh.. oops., Något har gått snett, prova igen!
+		Msgbox, Format: %mlFormat%`r`nTidning: %mltidning%`r`nOrdernummer: %mlOrdernr%`r`nKundnamn: %mlKundnamn%
 		Goto, TheEND
 	}
 	checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
@@ -1015,7 +1030,6 @@ CxenseBokning:
 G:
 cd G:\NTM\NTM Digital Produktion\cURL\bin
 curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/folder/advertising -d @%userFolder%xml.xml > %userFolder%create.xml
-pause
 )
 		FileAppend, %batToRun%, %userFolder%bat.bat
 		FileEncoding, UTF-8-RAW
@@ -1257,21 +1271,29 @@ productGET:
 	RiktadOUT = 00000001609df509
 	RiktadPAN = 00000001609df502
 	RiktadWID = 00000001609df506
+	Riktad380 = 0000000160ec7963
+	Riktad180 = 0000000160eb55e5
 
 	;---- ROS
 	RosMOD = 0000000160209522
 	RosOUT = 0000000160209517
 	RosPAN = 00000001601d3817
 	RosWID = 0000000160209515
+	Ros380 = 0000000160ec7931
+	Ros180 = 0000000160da016b
 
 	;---- PLUGG
 	PluggMOD = 000000016020bf61
 	PluggOUT = 000000016020bf38
 	PluggPAN = 000000016020bf82
 	PluggWID = 000000016020bf85
+	Plugg380 = 0000000160ec78f7
+	Plugg180 = 0000000160eb551b
 
 	;---- REACH
 	Reach = 000000015f460c65
+
+
 
 	if (mlFormat = "MOD" and Type = "Run On Site")
 	{
@@ -1289,6 +1311,14 @@ productGET:
 	{
 		productID = %RosPAN%
 	} 
+	else if (mlFormat = "380" and Type = "Run On Site")
+	{
+		productID = %Ros380%
+	} 
+	else if (mlFormat = "180" and Type = "Run On Site")
+	{
+		productID = %Ros180%
+	}
 	else if (mlFormat = "MOD" and Type = "Riktad")
 	{
 		productID = %RiktadMOD%
@@ -1305,7 +1335,15 @@ productGET:
 	{
 		productID = %RiktadPAN%
 	}
-		else if (mlFormat = "MOD" and Type = "Plugg")
+	else if (mlFormat = "380" and Type = "Riktad")
+	{
+		productID = %Riktad380%
+	}
+	else if (mlFormat = "180" and Type = "Riktad")
+	{
+		productID = %Riktad180%
+	}
+	else if (mlFormat = "MOD" and Type = "Plugg")
 	{
 		productID = %PluggMOD%
 	} 
@@ -1321,6 +1359,15 @@ productGET:
 	{
 		productID = %PluggPAN%
 	}
+	else if (mlFormat = "380" and Type = "Plugg")
+	{
+		productID = %Plugg380%
+	}
+	else if (mlFormat = "180" and Type = "Plugg")
+	{
+		productID = %Plugg180%
+	}
+
 	if (Type = "Reach")
 	{
 		productID = %Reach%
