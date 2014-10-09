@@ -874,7 +874,8 @@ BokaCX:
 	mlKundnamn = 0
 	mlOrdernr = 0
 	mlTidning = 0
-	mlFormat = 0
+	mlFormat = 
+	mlInternetenhet =
 
 
 	Gosub, CxenseBokning
@@ -900,6 +901,15 @@ getFromList:
 	mlExponeringar = %listArr14%
 	mlKundnr = %listArr15%
 	mlKundnamn = %listArr16%
+	ControlGetText, mlInternetenhet, Static17, Atex MediaLink
+	if (mlInternetenhet = "Textannons")
+	{
+		mlInternetenhet = TXT
+	}
+	else if (mlInternetenhet != "Textannons")
+	{
+		mlInternetenhet =
+	}
 	Gosub, anvNamn
 	if (Anvandare = "martinve")
 		{
@@ -949,23 +959,23 @@ getFromList:
 ; ----PRODUKT-IDn -----------------------
 ; ---------------------------------------
 
-;---- Riktade
-RiktadMOD = 00000001609df500
-RiktadOUT = 00000001609df509
-RiktadPAN = 00000001609df502
-RiktadWID = 00000001609df506
+;;---- Riktade
+;RiktadMOD = 00000001609df500
+;RiktadOUT = 00000001609df509
+;RiktadPAN = 00000001609df502
+;RiktadWID = 00000001609df506
 
-;---- ROS
-RosMOD = 0000000160209522
-RosOUT = 0000000160209517
-RosPAN = 00000001601d3817
-RosWID = 0000000160209515
+;;---- ROS
+;RosMOD = 0000000160209522
+;RosOUT = 0000000160209517
+;RosPAN = 00000001601d3817
+;RosWID = 0000000160209515
 
-;---- PLUGG
-PluggMOD = 000000016020bf61
-PluggOUT = 000000016020bf38
-PluggPAN = 000000016020bf82
-PluggWID = 000000016020bf85
+;;---- PLUGG
+;PluggMOD = 000000016020bf61
+;PluggOUT = 000000016020bf38
+;PluggPAN = 000000016020bf82
+;PluggWID = 000000016020bf85
 
 
 
@@ -983,10 +993,10 @@ CxenseBokning:
 	Gosub, getTidning			; mlTidning
  	Gosub, getFormat			; mlFormat
 	Gosub, xmlGET
-	if (mlFormat = 0 || mlKundnamn = 0 || mlOrdernr = 0 || mlTidning = 0)
+	if (mlKundnamn = 0 || mlOrdernr = 0 || mlTidning = 0)
 	{
 		MsgBox, 48, Eeeh.. oops., Något har gått snett, prova igen!
-		Msgbox, Format: %mlFormat%`r`nTidning: %mltidning%`r`nOrdernummer: %mlOrdernr%`r`nKundnamn: %mlKundnamn%
+		Msgbox, Format: %mlFormat%`r`nTidning: %mltidning%`r`n%mlOrdernr%, %mlKundnamn%
 		Goto, TheEND
 	}
 	checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
@@ -1119,7 +1129,7 @@ return
 
 bokaKampanjCX:
 	advertisingFolder = %mlTidning% - %mlKundnr% - %mlKundnamn%
-	campaign = %mlTidning% - %mlFormat% - %mlOrdernr%
+	campaign = %mlTidning% - %mlFormat%%mlInternetenhet% - %mlOrdernr%
 	
 	;---- Preset
 	Type = 0
@@ -1273,6 +1283,7 @@ productGET:
 	RiktadWID = 00000001609df506
 	Riktad380 = 0000000160ec7963
 	Riktad180 = 0000000160eb55e5
+	RiktadTXT = 0000000160f4b7d6
 
 	;---- ROS
 	RosMOD = 0000000160209522
@@ -1281,6 +1292,7 @@ productGET:
 	RosWID = 0000000160209515
 	Ros380 = 0000000160ec7931
 	Ros180 = 0000000160da016b
+	RosTXT = 0000000160f4b805
 
 	;---- PLUGG
 	PluggMOD = 000000016020bf61
@@ -1289,6 +1301,7 @@ productGET:
 	PluggWID = 000000016020bf85
 	Plugg380 = 0000000160ec78f7
 	Plugg180 = 0000000160eb551b
+	PluggTXT = 0000000160f4b848
 
 	;---- REACH
 	Reach = 000000015f460c65
@@ -1367,11 +1380,29 @@ productGET:
 	{
 		productID = %Plugg180%
 	}
+	else if (mlFormat = "180" and Type = "Plugg")
+	{
+		productID = %Plugg180%
+	}
 
 	if (Type = "Reach")
 	{
 		productID = %Reach%
 	}
+
+	if (mlInternetenhet = "TXT" and Type = "Run On Site")
+	{
+		productID = %RosTXT%
+	}
+	if (mlInternetenhet = "TXT" and Type = "Riktad")
+	{
+		productID = %RiktadTXT%
+	}
+	if (mlInternetenhet = "TXT" and Type = "Plugg")
+	{
+		productID = %PluggTXT%
+	}
+
 return
 
 CPMcheck:
@@ -1409,3 +1440,8 @@ IniRead, masterVersion, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\
 		UpdateTip = 1
 		TrayTip, Ny version finns!, Det finns en ny version av MedialinkPlus tillgänglig!
 	}
+	return
+
+^!#N::
+	Run, C:\Program Files (x86)\Microsoft Office\Office14\OUTLOOK.EXE /c IPM.Note
+	return
