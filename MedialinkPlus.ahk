@@ -8,9 +8,9 @@ DetectHiddenText, On
 :  + ATT GÖRA									 :
 :------------------------------------------------:
 
+Automatisk kontroll av flik vid automatinbokning.
 
 */
-
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
@@ -193,9 +193,9 @@ if !booted
 		menu, status, add, Ny, Ny
 		menu, status, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\ny.ico
 		menu, status, add, Repetition, Repetition
-		menu, status, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\rep.ico
+		menu, status, Icon, Repetition, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\rep.ico
 		menu, status, add, Lev. Färdig, LevFardig
-		menu, status, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\fardig.ico
+		menu, status, Icon, Lev. Färdig, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\fardig.ico
 		menu, status, add, Tilldela ingen, TilldelaIngen
 		menu, status, add, Tilldela..., Tilldela
 		menu, context, add, Statusar, :Status
@@ -708,7 +708,7 @@ getFormat:
 		mlFormat = MOB
 	}
 
-	if (format = "250 x 240" or format = "200 x 240")
+	if (format = "250 x 240" or format = "200 x 240" or format = "250 x 360")
 	{
 		mlFormat = WID
 	}
@@ -805,9 +805,9 @@ raknaExponeringar:
 	send, {esc}
 	Gosub, anvNamn
 	sleep, 150
-	ControlGet, exponeringar, List, Selected, %control%, Atex MediaLink
+	ControlGet, exponeringar, List, Selected, SysListView321, Atex MediaLink
 	sleep, 100
-	ControlGet, antal, List, Count Selected, %control%, Atex MediaLink
+	ControlGet, antal, List, Count Selected, SysListView321, Atex MediaLink
 	totExp = 0
 	count = 0
 	if (Anvandare = "martinve")
@@ -827,7 +827,7 @@ raknaExponeringar:
 		Loop, Parse, exponeringar, `n
 		{
 			StringSplit, expCount, A_LoopField, `t
-			totExp := totExp + expCount14
+			totExp := totExp + expCount10
 
 			count++
 			if (count = antal)
@@ -971,7 +971,7 @@ CxenseBokning:
 	Gosub, xmlGET
 	if (mlFormat = 0 || mlKundnamn = 0 || mlOrdernr = 0 || mlTidning = 0)
 	{
-		MsgBox, 0, Eeeh.. oops., Något har gått snett, prova igen!
+		MsgBox, 48, Eeeh.. oops., Något har gått snett, prova igen!
 		Goto, TheEND
 	}
 	checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
@@ -1015,10 +1015,12 @@ CxenseBokning:
 G:
 cd G:\NTM\NTM Digital Produktion\cURL\bin
 curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/folder/advertising -d @%userFolder%xml.xml > %userFolder%create.xml
-
+pause
 )
 		FileAppend, %batToRun%, %userFolder%bat.bat
+		FileEncoding, UTF-8-RAW
 		FileAppend, %xmlToRun%, %userFolder%xml.xml
+		FileEncoding
 		Sleep, 100
 		Run, %userFolder%bat.bat
 		Sleep, 150
@@ -1172,7 +1174,9 @@ BokningOK:
 	FileDelete, %userFolder%xml.xml
 	FileDelete, %userFolder%xmlOut.xml
 	Sleep, 500
+	FileEncoding, UTF-8-RAW
 	FileAppend, %xmlToRun%, %userFolder%xml.xml
+	FileEncoding
 	FileDelete, %userFolder%bat.bat
 	batToRun = 
 	(
@@ -1200,7 +1204,9 @@ BokningOK:
 </cx:cpmContract>
 )
 		FileDelete, %userFolder%xml.xml
+		FileEncoding, UTF-8-RAW
 		FileAppend, %xmlToRun%, %userFolder%xml.xml
+		FileEncoding
 		sleep, 100
 		FileDelete, %userFolder%bat.bat
 		batToRun = 
@@ -1228,8 +1234,9 @@ G:
 cd G:\NTM\NTM Digital Produktion\cURL\bin
 curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/ad/%campaignID% -d @%userFolder%xml.xml
 )
-	
+		FileEncoding, UTF-8-RAW
 		FileAppend, %xmlToRun%, %userFolder%xml.xml
+		FileEncoding
 		FileAppend, %batToRun%, %userFolder%bat.bat
 		Run, %userFolder%bat.bat
 		Sleep, 100
