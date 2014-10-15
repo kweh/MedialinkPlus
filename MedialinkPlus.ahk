@@ -8,17 +8,20 @@ DetectHiddenText, On
 :  + ATT GÖRA									 :
 :------------------------------------------------:
 
-Automatisk kontroll av flik vid automatinbokning.
+Automatisk kontroll av flik vid automatinbokning. (ej möjligt?)
+Annonstorget UNT
+Väderspons
+Kontrakt CPC ( Retarget )
 
 */
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
-version = 1.795
+version = 1.81
 
 nyheterText =
 (
-+ Lade till stöd för Gotland.net
++ Möjlighet att boka in mobilannonser
 )
 
 UpdateTip = 0
@@ -201,8 +204,10 @@ if !booted
 		menu, context, add, Statusar, :Status
 		menu, context, Icon, Statusar, c:\Windows\system32\SHELL32.dll, 099
 		;menu, context, add,
-		menu, context, add, Skicka Korrmail (Ansv. säljare), Korrmail
-		menu, context, Icon, Skicka Korrmail (Ansv. säljare), c:\Windows\system32\SHELL32.dll, 157
+		menu, context, add, Skicka Korrmail, Korrmail
+		menu, context, Icon, Skicka Korrmail, c:\Windows\system32\SHELL32.dll, 157
+		menu, context, add, Maila säljare, fragaSaljare
+		menu, context, Icon, Maila säljare, c:\Windows\system32\SHELL32.dll, 157
 		menu, Traffic, add, Felaktig order, FelaktigOrder
 		menu, Traffic, Icon, Felaktig order, c:\Windows\system32\SHELL32.dll, 110
 		menu, Traffic, add, Öppna i AdBooker, OppnaAdBooker
@@ -211,6 +216,8 @@ if !booted
 		menu, Traffic, add, Räkna kampanjer, raknaValda
 		menu, Traffic, add, Manus på mail, ManusPaMail
 		menu, Traffic, add, Undersöks, Undersoks
+		menu, Traffic, add, Rapport, Rapport
+		menu, Traffic, Icon, Rapport, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\rapport.ico
 		menu, context, add, Traffic, :Traffic
 		menu, context, Icon, Traffic, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\traffic.ico
 		Menu, context, Show						; Visar menyn
@@ -362,7 +369,22 @@ Korrmail:
 	Sleep, 100
 	Send, ^n
 	Sleep, 50
-	Send, %epost%{Alt down}m{Alt up} Webbkorr: %KundOchOrdernummer%{Tab}
+	Send, %epost%{Alt down}m{Alt up} Korrektur: %KundOchOrdernummer%{Tab}
+	return
+
+fragaSaljare:
+	ControlGetText,epost,Static54, Atex MediaLink
+	Send, !s{TAB}au{TAB}{Enter}
+	Sleep, 50
+	FileAppend,
+	(
+		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% mailade ang. %OrderNummer% till %epost%`n
+	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
+	WinActivate, Microsoft Outlook
+	Sleep, 100
+	Send, ^n
+	Sleep, 50
+	Send, %epost%{Alt down}m{Alt up} Fråga: %KundOchOrdernummer%{Tab}
 	return
 
 FelaktigOrder:
@@ -635,6 +657,7 @@ StartaAnnonsFlash:
 	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
 	Gosub, getFormat
 	Gosub, getTidning
+	Gosub, getFromList
 	ControlGetText, datum, Static13, Atex MediaLink
 	StringReplace, datum, datum,-,,All
 	StringReplace, kund, kund,:,,All
@@ -699,7 +722,7 @@ getTidning:
 	{
 		mlTidning = NTFB
 	}
-	IfInString, tidning, gotland.net
+	if tidningRaw2 = gotland.net
 	{
 		mlTidning = GN
 	}
@@ -1151,7 +1174,7 @@ bokaKampanjCX:
 	; -- NY BOKNINGSMENY
 	Gui, Add, GroupBox, x12 y10 w420 h180 , Bokningsöversikt
 	Gui, Add, Text, x22 y40 w80 h20 , Typ:
-	Gui, Add, DropDownList, x142 y40 w120 h20 vType R4, Run On Site||Riktad|Plugg|Reach
+	Gui, Add, DropDownList, x142 y40 w120 h20 vType R5, Run On Site||Riktad|Plugg|Reach|Retarget
 	Gui, Add, Text, x22 y70 w100 h20 , Advertising Folder:
 	Gui, Add, Edit, x142 y70 w280 h20 vadvertisingFolder, %advertisingFolder%
 	Gui, Add, Text, x22 y100 w100 h20 , Campaign:
@@ -1306,6 +1329,12 @@ productGET:
 	;---- REACH
 	Reach = 000000015f460c65
 
+	;---- MOBIL
+	Mobil = 00000001608fa111
+
+	;---- RETARGET
+	RetargetMob = 0000000160fb5848
+	RetargetPan = 0000000160fb4fd9
 
 
 	if (mlFormat = "MOD" and Type = "Run On Site")
@@ -1365,8 +1394,8 @@ productGET:
 		productID = %PluggOUT%
 	}
 	else if (mlFormat = "WID" and Type = "Plugg")
-	{
-		productID = %PluggWID%
+	
+{		productID = %PluggWID%
 	}
 	else if (mlFormat = "PAN" and Type = "Plugg")
 	{
@@ -1402,6 +1431,19 @@ productGET:
 	{
 		productID = %PluggTXT%
 	}
+	if (mlFormat = "MOB" )
+	{
+		productID = %Mobil%
+	}
+	if (mlFormat = "MOB" and Type = "Retarget")
+	{
+		productID = %RetargetMob%
+	}
+	if (mlFormat = "PAN" and Type = "Retarget")
+	{
+		productID = %RetargetPan%
+	}
+
 
 return
 
@@ -1445,3 +1487,106 @@ IniRead, masterVersion, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\
 ^!#N::
 	Run, C:\Program Files (x86)\Microsoft Office\Office14\OUTLOOK.EXE /c IPM.Note
 	return
+
+Rapport:
+FileCreateDir, %A_AppData%\AHK
+userFolder = %A_AppData%\AHK\
+
+
+Gosub, getFromList			; mlStartdatum, mlStoppdatum, mlKundnr, mlExponeringar, mlKundnamn
+StringReplace, mlKundnamn, mlKundnamn,:,,All
+StringReplace, mlKundnamn, mlKundnamn,\,,All
+StringReplace, mlKundnamn, mlKundnamn,/,,All
+StringReplace, mlKundnamn, mlKundnamn,&&,,All
+StringReplace, mlKundnamn, mlKundnamn,&,,All
+Gosub, getOrdernr			; mlOrdernr
+Gosub, getTidning			; mlTidning
+Gosub, getFormat			; mlFormat
+
+
+FileDelete, %userFolder%bat.bat
+FileDelete, %userFolder%xmlOut.xml
+sleep, 100
+batToRun = 
+(
+G:
+cd G:\NTM\NTM Digital Produktion\cURL\bin
+curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/folder/advertising > %userFolder%xmlOut.xml
+)
+FileAppend, %batToRun%, %userFolder%bat.bat
+Run, %userFolder%bat.bat
+Sleep, 150
+WinWaitClose, C:\Windows\system32\cmd.exe
+
+checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
+
+	FileRead, xmlOut, %userFolder%xmlOut.xml
+	StringReplace, xmlOut, xmlOut, <cx:childFolder>, +, A
+	xmlPart = 0
+	Loop, Parse, xmlOut, +
+	{
+		xmlIndex++
+		if InStr(A_LoopField, checkKundNR)
+		{
+			xmlPart = %A_LoopField%
+			break
+		}
+	}
+	if (xmlPart != 0)
+	{
+		StringSplit, xmlSplit, xmlPart, >
+		StringSplit, xmlSplit, xmlSplit4, <
+		xmlID = %xmlSplit1% ; xmlID innehåller kundens ID
+	}
+	if (xmlPart = 0) ; Kund kunde inte hittas
+	{
+		msgbox, Kunde inte hitta kund, avbryter
+		Return
+	}
+
+FileDelete, %userFolder%bat.bat
+FileDelete, %userFolder%xmlOut.xml
+sleep, 100
+batToRun = 
+(
+G:
+cd G:\NTM\NTM Digital Produktion\cURL\bin
+curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/campaigns/%xmlID% > %userFolder%xmlOut.xml
+)
+FileAppend, %batToRun%, %userFolder%bat.bat
+Run, %userFolder%bat.bat
+Sleep, 150
+WinWaitClose, C:\Windows\system32\cmd.exe
+
+checkOrdernr = -%A_Space%%mlOrdernr%
+
+	FileRead, xmlOut, %userFolder%xmlOut.xml
+	StringReplace, xmlOut, xmlOut, <cx:campaign>, +, A
+	xmlPart = 0
+	Loop, Parse, xmlOut, +
+	{
+		xmlIndex++
+		if InStr(A_LoopField, checkOrdernr)
+		{
+			xmlPart = %A_LoopField%
+			break
+		}
+	}
+	if (xmlPart != 0)
+	{
+		StringSplit, xmlSplit, xmlPart, >
+		StringSplit, xmlSplit, xmlSplit4, <
+		orderID = %xmlSplit1% ; orderID innehåller kampanjens ID
+	}
+	if (xmlPart = 0) ; Kund kunde inte hittas
+	{
+		msgbox, Kunde inte hitta ordernummer, avbryter
+		Return
+	}
+	MsgBox,4,Rapport hittad, Rapport hittad`, öppna i webbläsaren?
+		IfMsgBox, Yes
+			run, http://digital.ntm.eu/rapport/advertiser/%xmlID%/campaign/%orderID%/
+		IfMsgBox, No
+			return
+
+return
