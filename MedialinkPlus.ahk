@@ -21,7 +21,8 @@ version = 1.82
 
 nyheterText =
 (
-+ Möjlighet att boka in mobilannonser
++ Möjlighet att boka in Affärslivsannonser
++ Rapportlänk i korrektur
 )
 
 UpdateTip = 0
@@ -751,7 +752,7 @@ getFormat:
 		mlFormat = WID
 	}
 
-	if (format = "980 x 120" or format = "980 x 240" or format = "980 x 480")
+	if (format = "980 x 120" or format = "980 x 240" or format = "980 x 480" or format = "844 x 178")
 	{
 		mlFormat = PAN
 	}
@@ -801,7 +802,7 @@ getFormat:
 		mlFormat = 180
 	}
 
-	if (format = "380 x 280")
+	if (format = "380 x 280" or format = "250 x 360")
 	{
 		mlFormat = 380
 	}
@@ -1414,8 +1415,8 @@ productGET:
 		productID = %PluggOUT%
 	}
 	else if (mlFormat = "WID" and Type = "Plugg")
-	
-{		productID = %PluggWID%
+	{
+		productID = %PluggWID%
 	}
 	else if (mlFormat = "PAN" and Type = "Plugg")
 	{
@@ -1467,7 +1468,10 @@ productGET:
 	{
 		productID = %Ros580%
 	}
-
+	else if (mlFormat = "WID" and mlTidning = "AF")
+	{
+		productID = %Ros380%
+	}
 
 return
 
