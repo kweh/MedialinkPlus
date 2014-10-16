@@ -17,7 +17,7 @@ Kontrakt CPC ( Retarget )
 ; -----------------------------------------
 ; --------------- INIT --------------------
 ; -----------------------------------------
-version = 1.81
+version = 1.82
 
 nyheterText =
 (
@@ -358,6 +358,7 @@ SokOrder:
 	return
 
 Korrmail:
+	RapportURL = 0
 	ControlGetText,epost,Static54, Atex MediaLink
 	Send, !s{TAB}akkkkkk{TAB}{Enter}
 	Sleep, 50
@@ -365,11 +366,17 @@ Korrmail:
 	(
 		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% mailade korrektur på %OrderNummer% till %epost%`n
 	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
+	Gosub, RapportURL
 	WinActivate, Microsoft Outlook
 	Sleep, 100
 	Send, ^n
 	Sleep, 50
 	Send, %epost%{Alt down}m{Alt up} Korrektur: %KundOchOrdernummer%{Tab}
+	if (RapportURL != 0)
+	{
+		SetKeyDelay, 0
+		Send, {Enter 2}----{Enter 2}%RapportURL%
+	}
 	return
 
 fragaSaljare:
@@ -726,6 +733,10 @@ getTidning:
 	{
 		mlTidning = GN
 	}
+	if tidningRaw2 = Affärsliv.com
+	{
+		mlTidning = AF
+	}
 	return
 
 getFormat:
@@ -793,6 +804,10 @@ getFormat:
 	if (format = "380 x 280")
 	{
 		mlFormat = 380
+	}
+	if (format = "468 x 240" and mlTidning = "AF")
+	{
+		mlFormat = 
 	}
 	return
 
@@ -929,7 +944,11 @@ getFromList:
 	{
 		mlInternetenhet = TXT
 	}
-	else if (mlInternetenhet != "Textannons")
+	if (mlInternetenhet = "Affärsliv Mittbanner")
+	{
+		mlInternetenhet = 580
+	}
+	else if (mlInternetenhet != "Textannons" or mlInternetenhet != "Affärsliv Mittbanner")
 	{
 		mlInternetenhet =
 	}
@@ -1313,6 +1332,7 @@ productGET:
 	RosOUT = 0000000160209517
 	RosPAN = 00000001601d3817
 	RosWID = 0000000160209515
+	Ros580 = 0000000160fc0369
 	Ros380 = 0000000160ec7931
 	Ros180 = 0000000160da016b
 	RosTXT = 0000000160f4b805
@@ -1442,6 +1462,10 @@ productGET:
 	if (mlFormat = "PAN" and Type = "Retarget")
 	{
 		productID = %RetargetPan%
+	}
+	if (mlInternetenhet = "580")
+	{
+		productID = %Ros580%
 	}
 
 
@@ -1589,4 +1613,110 @@ checkOrdernr = -%A_Space%%mlOrdernr%
 		IfMsgBox, No
 			return
 
+return
+
+
+RapportURL:
+FileCreateDir, %A_AppData%\AHK
+userFolder = %A_AppData%\AHK\
+
+
+Gosub, getFromList			; mlStartdatum, mlStoppdatum, mlKundnr, mlExponeringar, mlKundnamn
+StringReplace, mlKundnamn, mlKundnamn,:,,All
+StringReplace, mlKundnamn, mlKundnamn,\,,All
+StringReplace, mlKundnamn, mlKundnamn,/,,All
+StringReplace, mlKundnamn, mlKundnamn,&&,,All
+StringReplace, mlKundnamn, mlKundnamn,&,,All
+Gosub, getOrdernr			; mlOrdernr
+Gosub, getTidning			; mlTidning
+Gosub, getFormat			; mlFormat
+
+
+FileDelete, %userFolder%bat.bat
+FileDelete, %userFolder%xmlOut.xml
+sleep, 100
+batToRun = 
+(
+G:
+cd G:\NTM\NTM Digital Produktion\cURL\bin
+curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/folder/advertising > %userFolder%xmlOut.xml
+)
+FileAppend, %batToRun%, %userFolder%bat.bat
+Run, %userFolder%bat.bat
+Sleep, 150
+WinWaitClose, C:\Windows\system32\cmd.exe
+
+checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
+
+	FileRead, xmlOut, %userFolder%xmlOut.xml
+	StringReplace, xmlOut, xmlOut, <cx:childFolder>, +, A
+	xmlPart = 0
+	Loop, Parse, xmlOut, +
+	{
+		xmlIndex++
+		if InStr(A_LoopField, checkKundNR)
+		{
+			xmlPart = %A_LoopField%
+			break
+		}
+	}
+	if (xmlPart != 0)
+	{
+		StringSplit, xmlSplit, xmlPart, >
+		StringSplit, xmlSplit, xmlSplit4, <
+		xmlID = %xmlSplit1% ; xmlID innehåller kundens ID
+	}
+	if (xmlPart = 0) ; Kund kunde inte hittas
+	{
+		msgbox, Kunde inte hitta kund, ingen länk infogas.
+		Return
+	}
+
+FileDelete, %userFolder%bat.bat
+FileDelete, %userFolder%xmlOut.xml
+sleep, 100
+batToRun = 
+(
+G:
+cd G:\NTM\NTM Digital Produktion\cURL\bin
+curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/campaigns/%xmlID% > %userFolder%xmlOut.xml
+)
+FileAppend, %batToRun%, %userFolder%bat.bat
+Run, %userFolder%bat.bat
+Sleep, 150
+WinWaitClose, C:\Windows\system32\cmd.exe
+
+checkOrdernr = -%A_Space%%mlOrdernr%
+
+	FileRead, xmlOut, %userFolder%xmlOut.xml
+	StringReplace, xmlOut, xmlOut, <cx:campaign>, +, A
+	xmlPart = 0
+	Loop, Parse, xmlOut, +
+	{
+		xmlIndex++
+		if InStr(A_LoopField, checkOrdernr)
+		{
+			xmlPart = %A_LoopField%
+			break
+		}
+	}
+	if (xmlPart != 0)
+	{
+		StringSplit, xmlSplit, xmlPart, >
+		StringSplit, xmlSplit, xmlSplit4, <
+		orderID = %xmlSplit1% ; orderID innehåller kampanjens ID
+	}
+	if (xmlPart = 0) ; Kund kunde inte hittas
+	{
+		msgbox, Kunde inte hitta ordernummer, ingen länk infogas.
+		Return
+	}
+	RapportURL = 
+	(
+{CTRL down}f{CTRL up}Länk för rapport:{CTRL down}f{CTRL up}
+http://digital.ntm.eu/rapport/advertiser/%xmlID%/campaign/%orderID%/
+
+Spara denna länk{SHIFT down}1{SHIFT up}
+På denna länk finns information om hur denna order är inbokad. Kontrollera så att start/stoppdatum stämmer och att antal exponeringar är korrekt. Denna länk fungerar även som statusrapport för denna kampanj. Här kan du se exakt hur många exponeringar/klick som levererats hittills i kampanjen. Om du någon gång under kampanjens gång upplever att något inte står rätt till, kontakta Traffic.{CTRL down}{Home}{CTRL up}
+	)
 return

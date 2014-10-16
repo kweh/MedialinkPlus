@@ -209,6 +209,7 @@ Lager:
 	xml = 
 	(
 	<lager>
+		<timestamp>%A_Now%</timestamp>
 	%list%
 	</lager>
 	)
