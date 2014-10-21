@@ -1,4 +1,4 @@
-﻿SetTitleMatchMode,2
+﻿SetTitleMatchMode, 2
 DetectHiddenText, On
 #include cxuser.ahk
 #persistent
@@ -12,6 +12,7 @@ Automatisk kontroll av flik vid automatinbokning. (ej möjligt?)
 Annonstorget UNT
 Väderspons
 Kontrakt CPC ( Retarget )
+Site targeting
 
 */
 ; -----------------------------------------
@@ -623,6 +624,7 @@ OK:
 ; -----------------------------------------
 
 StartaAnnonsPS:
+	Gosub, getFromList
 	Send, !a{TAB}%Anvandare%{TAB}{Enter}
 	Send, !s{TAB}ab{TAB}{Enter}
 	Sleep, 50
@@ -634,7 +636,7 @@ StartaAnnonsPS:
 	Gosub, getTidning
 	ControlGetText, datum, Static13, Atex MediaLink
 	StringReplace, datum, datum,-,,All
-	StringReplace, kund, kund,:,,All
+	StringReplace, kund, mlKundnamn,:,,All
 	StringReplace, kund, kund,\,,All
 	StringReplace, kund, kund,/,,All
 	StringTrimLeft,datum,datum,2
@@ -656,6 +658,7 @@ StartaAnnonsPS:
 	return
 
 StartaAnnonsFlash:
+	Gosub, getFromList
 	Send, !a{TAB}%Anvandare%{TAB}{Enter}
 	Send, !s{TAB}ab{TAB}{Enter}
 	Sleep, 50
@@ -668,7 +671,7 @@ StartaAnnonsFlash:
 	Gosub, getFromList
 	ControlGetText, datum, Static13, Atex MediaLink
 	StringReplace, datum, datum,-,,All
-	StringReplace, kund, kund,:,,All
+	StringReplace, kund, mlKundnamn,:,,All
 	StringReplace, kund, kund,\,,All
 	StringReplace, kund, kund,/,,All
 	StringTrimLeft,datum,datum,2
@@ -742,7 +745,7 @@ getTidning:
 
 getFormat:
 	ControlGetText, format, Static19, Atex MediaLink	
-	if (format = "320 x 80" or format = "320 x 160" or format = "320 x 320")
+	if (format = "320 x 80" or format = "320 x 160" or format = "320 x 320" or format = "320 x 180")
 	{
 		mlFormat = MOB
 	}
@@ -935,24 +938,6 @@ getFromList:
 	StringSplit, getListRow, getList, `n
 	listRow = %getListRow1%
 	Stringsplit, listArr, listRow, `t
-	mlStartdatum = %listArr9%
-	mlStoppdatum = %listArr10%
-	mlExponeringar = %listArr14%
-	mlKundnr = %listArr15%
-	mlKundnamn = %listArr16%
-	ControlGetText, mlInternetenhet, Static17, Atex MediaLink
-	if (mlInternetenhet = "Textannons")
-	{
-		mlInternetenhet = TXT
-	}
-	if (mlInternetenhet = "Affärsliv Mittbanner")
-	{
-		mlInternetenhet = 580
-	}
-	else if (mlInternetenhet != "Textannons" or mlInternetenhet != "Affärsliv Mittbanner")
-	{
-		mlInternetenhet =
-	}
 	Gosub, anvNamn
 	if (Anvandare = "martinve")
 		{
@@ -994,6 +979,27 @@ getFromList:
 			mlKundnr = %listArr11%
 			mlKundnamn = %listArr12%
 		}
+	if (Anvandare = "ericama")
+		{
+			mlStartdatum = %listArr7%
+			mlStoppdatum = %listArr8%
+			mlExponeringar = %listArr11%
+			mlKundnr = %listArr2%
+			mlKundnamn = %listArr3%
+		}
+	ControlGetText, mlInternetenhet, Static17, Atex MediaLink
+	if (mlInternetenhet = "Textannons")
+	{
+		mlInternetenhet = "TXT"
+	}
+	if (mlInternetenhet = "Affärsliv Mittbanner")
+	{
+		mlInternetenhet = "580"
+	}
+	if (mlInternetenhet != "TXT" or mlInternetenhet != "Affärsliv Mittbanner")
+	{
+		mlInternetenhet =
+	}
 
 	}
 	return
@@ -1089,9 +1095,11 @@ curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/
 		FileAppend, %xmlToRun%, %userFolder%xml.xml
 		FileEncoding
 		Sleep, 100
-		Run, %userFolder%bat.bat
+		Run, %userFolder%bat.bat,,Min
+		SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
 		Sleep, 150
 		WinWaitClose, C:\Windows\system32\cmd.exe
+		SplashImage, Off
 		MsgBox,1, Kund inlagd, Kund inlagd. Boka kampanj?
 		ifMsgBox, Cancel
 		{
@@ -1139,9 +1147,11 @@ cd G:\NTM\NTM Digital Produktion\cURL\bin
 curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/folder/advertising > %userFolder%xmlOut.xml
 )
 FileAppend, %batToRun%, %userFolder%bat.bat
-Run, %userFolder%bat.bat
+Run, %userFolder%bat.bat,,Min
+SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
 Sleep, 150
 WinWaitClose, C:\Windows\system32\cmd.exe
+SplashImage, Off
 fileToCheck = %userFolder%xmlOut.xml
 Loop, 40
 {
@@ -1252,9 +1262,11 @@ BokningOK:
 	curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/campaign/%xmlID% -d @%userFolder%xml.xml > %userFolder%xmlOut.xml
 	)
 	FileAppend, %batToRun%, %userFolder%bat.bat
-	Run, %userFolder%bat.bat
+	Run, %userFolder%bat.bat,,Min
+	SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
 	Sleep, 150
 	WinWaitClose, C:\Windows\system32\cmd.exe
+	SplashImage, Off
 	FileRead, xmlOut, %userFolder%xmlOut.xml
 	StringSplit, xmlSplit, xmlOut, >
 	StringSplit, xmlSplit, xmlSplit6, <
@@ -1283,7 +1295,8 @@ BokningOK:
 		curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/contract/%campaignID% -d @%userFolder%xml.xml > %userFolder%xmlOut.xml
 		)
 		FileAppend, %batToRun%, %userFolder%bat.bat
-		Run, %userFolder%bat.bat
+		Run, %userFolder%bat.bat,,Min
+
 		Sleep, 500
 		
 		FileDelete, %userFolder%xml.xml
@@ -1305,9 +1318,11 @@ curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/
 		FileAppend, %xmlToRun%, %userFolder%xml.xml
 		FileEncoding
 		FileAppend, %batToRun%, %userFolder%bat.bat
-		Run, %userFolder%bat.bat
+		Run, %userFolder%bat.bat,,Min
+		SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
 		Sleep, 100
 		WinWaitClose, C:\Windows\system32\cmd.exe
+		SplashImage, Off
 		MsgBox,4, Bokning klar, Inbokning klar, öppna i webbläsaren?
 		IfMsgBox, Yes
 			run, https://cxad.cxense.com/adv/campaign/%campaignID%/overview
@@ -1494,6 +1509,26 @@ else if (Type = "Reach")
 }
 return
 
+
+SiteTargeting:
+	FileDelete, %userFolder%bat.bat
+	FileDelete, %userFolder%xml.xml
+	FileDelete, %userFolder%xmlOut.xml
+	FileDelete, %userFolder%create.xml
+
+	xmlToRun = 
+(
+<?xml version="1.0" encoding="utf-8"?>
+<cx:cpmContract xmlns:cx="http://cxense.com/cxad/api/cxad">
+<cx:startDate>%mlStartdatum%T00:00:00.000+02:00</cx:startDate>
+<cx:endDate>%mlStoppdatum%T23:59:59.000+02:00</cx:endDate>
+<cx:priority>0.50</cx:priority>
+<cx:requiredImpressions>%mlExponeringar%</cx:requiredImpressions>
+<cx:costPerThousand class="currency" currencyCode="SEK" value="%CPM%"/>
+</cx:cpmContract>
+)
+	return
+
 Avbryt:
 	Gui, Destroy
 	return
@@ -1515,6 +1550,7 @@ IniRead, masterVersion, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\
 ^!#N::
 	Run, C:\Program Files (x86)\Microsoft Office\Office14\OUTLOOK.EXE /c IPM.Note
 	return
+
 
 Rapport:
 FileCreateDir, %A_AppData%\AHK
@@ -1542,9 +1578,11 @@ cd G:\NTM\NTM Digital Produktion\cURL\bin
 curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/folder/advertising > %userFolder%xmlOut.xml
 )
 FileAppend, %batToRun%, %userFolder%bat.bat
-Run, %userFolder%bat.bat
+Run, %userFolder%bat.bat,,Min
+SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
 Sleep, 150
 WinWaitClose, C:\Windows\system32\cmd.exe
+SplashImage, Off
 
 checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
 
@@ -1568,7 +1606,7 @@ checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
 	}
 	if (xmlPart = 0) ; Kund kunde inte hittas
 	{
-		msgbox, Kunde inte hitta kund, avbryter
+		msgbox, Kunde inte hitta kund, ingen länk infogas.
 		Return
 	}
 
@@ -1582,9 +1620,11 @@ cd G:\NTM\NTM Digital Produktion\cURL\bin
 curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/campaigns/%xmlID% > %userFolder%xmlOut.xml
 )
 FileAppend, %batToRun%, %userFolder%bat.bat
-Run, %userFolder%bat.bat
+Run, %userFolder%bat.bat,,Min
+SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
 Sleep, 150
 WinWaitClose, C:\Windows\system32\cmd.exe
+SplashImage, Off
 
 checkOrdernr = -%A_Space%%mlOrdernr%
 
@@ -1646,9 +1686,11 @@ cd G:\NTM\NTM Digital Produktion\cURL\bin
 curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/folder/advertising > %userFolder%xmlOut.xml
 )
 FileAppend, %batToRun%, %userFolder%bat.bat
-Run, %userFolder%bat.bat
+Run, %userFolder%bat.bat,,Min
+SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
 Sleep, 150
 WinWaitClose, C:\Windows\system32\cmd.exe
+SplashImage, Off
 
 checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
 
@@ -1686,9 +1728,11 @@ cd G:\NTM\NTM Digital Produktion\cURL\bin
 curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/campaigns/%xmlID% > %userFolder%xmlOut.xml
 )
 FileAppend, %batToRun%, %userFolder%bat.bat
-Run, %userFolder%bat.bat
+Run, %userFolder%bat.bat,,Min
+SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
 Sleep, 150
 WinWaitClose, C:\Windows\system32\cmd.exe
+SplashImage, Off
 
 checkOrdernr = -%A_Space%%mlOrdernr%
 
