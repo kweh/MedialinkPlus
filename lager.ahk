@@ -92,7 +92,7 @@ Lager:
 		;FORMAT
 		Produkt := %ProduktRAW%
 
-		if (Produkt = "Guld" || Produkt = "Widescreen" ||Produkt = "Guld sidfot")
+		if (Produkt = "Guld" || Produkt = "Widescreen" || Produkt = "Guld sidfot" || Produkt = "Widescreen 240" )
 		{
 			Format = WID
 		}
@@ -104,7 +104,7 @@ Lager:
 		{
 			Format = OUT
 		}
-		if (Produkt = "Bigbanner" || Produkt = "Panorama" ||Produkt = "Panorama XL" ||Produkt = "Bigbanner XL")
+		if (Produkt = "Bigbanner" || Produkt = "Panorama" || Produkt = "Panorama XL" || Produkt = "Bigbanner XL" || Produkt = "Panorama 120" || Produkt = "Panorama 240")
 		{
 			Format = PAN
 		}

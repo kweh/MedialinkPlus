@@ -1,1340 +1,564 @@
 ﻿SetTitleMatchMode, 2
 DetectHiddenText, On
-#include cxuser.ahk
-#persistent
-/* 
- 
-:------------------------------------------------:
-:  + ATT GÖRA									 :
-:------------------------------------------------:
 
-Automatisk kontroll av flik vid automatinbokning. (ej möjligt?)
-Annonstorget UNT
-Väderspons
-Kontrakt CPC ( Retarget )
-Site targeting
-
+/*
+-----------------------------------------------------------
+	UPPSTART & INITIALISERING
+-----------------------------------------------------------
 */
-; -----------------------------------------
-; --------------- INIT --------------------
-; -----------------------------------------
-version = 1.82
+version = 2.003
+menuOn = 0
+lmenuOn = 0
+toolbar = 0
+traytip = 0
+noteWin = 1
+skin = 
 
-nyheterText =
-(
-+ Möjlighet att boka in Affärslivsannonser
-+ Rapportlänk i korrektur
-)
+mlpDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\user\%A_UserName% ; Sätter användarens användarmapp
+cxDir = %A_AppData%\MLP\cx
+iconDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\ico ; Sätter mapp för ikoner
+templateDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\assets\toCopy ; Sätter mapp för psd- pch fla-mallar
+webbannonsDir = G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%
+lagerDir = X:\digital.ntm.eu\lager
 
-UpdateTip = 0
+ifNotExist, %mlpDir% ; om mappen inte finns
+	FileCreateDir, %mlpDir% ; skapa mappen
+IfNotExist, %cxDir%
+	FileCreateDir, %cxDir%
+IfNotExist, %mlpDir%\skin
+	FileCreateDir, %mlpDir%\skin
 
+#include cxuser.ahk
 
-
-
-
-Gosub, anvNamn
-
-; -----------------------------------------
-; --------------- BOOT --------------------
-; -----------------------------------------
-
-if !booted
-
-	mlpDir = %A_AppData%\MLP
-	mlpSettings = %mlpDir%\settings.ini
-	if fileExist(mlpSettings)
+mlpSettings = %mlpDir%\settings.ini 
+IfNotExist, %mlpSettings%
 	{
+	IniWrite, ERROR, %mlpDir%\settings.ini, Settings, Skin
+	IniWrite, 1, %mlpDir%\settings.ini, Settings, NoteWin
+	}	
+mlpKolumner = %mlpDir%\kolumner.ini
+FileAppend,,%mlpDir%\settings.ini
+IniWrite, %version%, %mlpSettings%, Version, Version
+
+IniRead, mainVersion, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\master.ini, Version, Version
+
+; SPLASH
+SplashImage, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\mlp2.jpg, B
+Sleep 3000
+SplashImage, Off
+
+IfNotExist, %mlpKolumner%
+	MsgBox, Du har inga inställningar för kolumner. Högerklicka på en order i Medialink och välj "MediaLink Plus -> Redigera Kolumner" för att ställa in.
+
+
+; Läs inställningar
+IniRead, noteWin, %mlpSettings%, Settings, NoteWin
+IniRead, skin, %mlpSettings%, Settings, Skin
+
+
+if (version < mainVersion){
+	MsgBox, 68, Ny version!, Det finns en ny version av Medialink Plus. Vill du hämta den?
+	IfMsgBox, Yes
+		Run, G:\NTM\NTM Digital Produktion\MedialinkPlus
+}
+
+SetTimer, versionCheck, 5000
+versionCheck:
+	IniRead, mainVersion, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\master.ini, Version, Version
+	if (version < mainVersion && traytip = 0){
+		traytip = 1
+		TrayTip, Ny version tillgänglig!, Det finns en ny version av Medialink Plus!`r`n Välj "Medialink Plus->Kontrollera uppdateringar" i menyn för att uppdatera.,10, 1
+	}	
+
+/*
+-----------------------------------------------------------
+	Extra-toolbars
+-----------------------------------------------------------
+*/
+
+SetTimer, onTop, 100 ; Timer för extrafunktioner i Medialink-fönstret.
+
+	onTop:
+	if (noteWin = 1){
+	IfWinActive, Atex MediaLink
+	{
+		mlActive = 1
+	} else {
+		mlActive = 0
+	}
+	IfWinActive, noteWin
+	{
+		mlActive = 1
+	}
+
+	if (toolbar = 0 and mlActive = 1)
+	{
+		Toolbar = 1
+		WinGetPos, mlX, mlY,mlW,mlH,Atex MediaLink
+		mlX7 := mlX + 790
+		mlY7 := mlY + 54
 		
-	} else {
-		FileCreateDir, %mlpDir%
-		FileAppend,,%mlpDir%\settings.ini
-		IniWrite, %version%, %mlpDir%\settings.ini, Version, Version
+		mlX6 := mlX+10
+		mlY6 := mlH-320
+		Gui, 7: Margin, 0, 0 
+		Gui, 7: +ToolWindow -Caption ; no title, no taskbar icon 
+		Gui, 7: Add, Picture, gcxMini ,%iconDir%\btn_cxmini.jpg
+		Gui, 7: Show, x%mlX7% y%mlY7% NoActivate
+		Gui, 7: +AlwaysOnTop
+		
+		Gui, 6: Margin, 0, 0
+		Gui, 6: +ToolWindow -Caption -0x200000
+		Gui, 6: Add, Edit, w220 h280 vinternaNoteringarEdit
+		Gui, 6: Show, x%mlX6% y%mlY6% NoActivate, noteWin
+		Gui, 6: +AlwaysOnTop
 	}
-
-	; SPLASH
-	SetTimer, versionTimer, 5000
-	SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\mlp1_7.jpg, B
-	Sleep 3000
-	SplashImage, Off
-
-	; /SPLASH
-
-	; Läs version i ini
-	IniRead, ownVersion, %mlpDir%\settings.ini, Version, Version, 0
-
-	; om versionen i ini-filen är mindre än programmets, uppdatera ini
-	if (ownVersion < version)
+	if (toolbar = 0 and mlActive = 0)
 	{
-		IniWrite, %version%, %mlpDir%\settings.ini, Version, Version
-		IniRead, ownVersion, %mlpDir%\settings.ini, Version, Version, 0
+		return
 	}
-
-	; Jämför master med ini
-	IniRead, masterVersion, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\master.ini, Version, Version, 0
-	versionCheck := masterVersion - ownVersion
-	if (versionCheck > 0)
+	if (toolbar = 1 och mlActive = 1)
 	{
-		MsgBox,4, Ny Version!, Det finns en ny version av MedialinkPlus!`nVill du hämta den?
-		IfMsgBox Yes
-    		run, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus
-    	IfMsgBox No
-    		return
+		return
 	}
-
-	;Visa nyhetsmeddelande om detta inte gjorts tidigare
-	IniRead, iniNyheter, %mlpDir%\settings.ini, Toggles, Nyheter, 0
-	if (iniNyheter = version)
+	if (toolbar = 1 and mlActive = 0)
 	{
-		Return
-	} else {
-		MsgBox, 0, Vad har hänt?, %nyheterText%
-		IniWrite, %version%, %mlpDir%\settings.ini, Toggles, Nyheter
+		toolbar = 0
+		Gui, 7: Destroy
+		Gui, 6: Destroy
 	}
+	return
+}
+return
 
-	booted = True
-	
-
-; -----------------------------------------
-; --------------- MENY --------------------
-; -----------------------------------------
-
+/*
+-----------------------------------------------------------
+	MENY
+-----------------------------------------------------------
+*/
 ~LButton::
-	if(A_PriorHotkey = A_ThisHotkey && A_TimeSincePriorHotkey < 300)
+	IfWinActive, Atex MediaLink
 	{
 		MouseGetPos, , , id, control
-		IfInString, control, SysListView
+		IfInString, control, SysListView ; kontrollerar att man klickat i en SysListView
 		{
 			SLV = 1
 		} else {
 			SLV = 0
 		}
-		If ((WinActive("ahk_class wxWindowClassNR") and SLV = 1) or WinActive("ahk_class AutoHotkey"))
-		{
-			menu, lMenu, add, Klar, Klar
-			menu, lMenu, Icon, Klar, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\klar.ico
-			menu, lMenu, add, Bearbetas, TilldelaBearbeta
-			menu, lMenu, Icon, Bearbetas, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\bearbetas.ico
-			menu, lMenu, add, Korrektur Skickat, KorrSkickat
-			menu, lMenu, Icon, Korrektur Skickat, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\korr.ico
-			menu, lMenu, add, Korrektur Klart, KorrKlart
-			menu, lMenu, Icon, Korrektur Klart, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\korr.ico
-			menu, lMenu, add, Vilande, Vilande
-			menu, lMenu, Icon, Vilande, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\vilande.ico
-			menu, lMenu, add, Manus på mail, ManusPaMail
-			menu, lMenu, Icon, Manus på mail, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\vilande.ico
-			menu, lMenu, add, Undersöks, Undersoks
-			menu, lMenu, Icon, Undersöks, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\undersoks.ico
-			menu, lMenu, add, Arkiverad, Arkiverad
-			menu, lMenu, Icon, Arkiverad, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\arkiverad.ico
-			menu, lMenu, add, Ny, Ny
-			menu, lMenu, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\ny.ico
-			menu, lMenu, add, Repetition, Repetition
-			menu, lMenu, Icon, Repetition, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\rep.ico
-			menu, lMenu, add, Lev. Färdig, LevFardig
-			menu, lMenu, Icon, Lev. Färdig, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\fardig.ico
-			menu, lMenu, show
+
+		If (SLV =1)
+		{ 
+			sleep, 200
+			ControlGetText, internaNoteringar, Edit3, Atex MediaLink
+			sleep, 100
+			ControlSetText, Edit1, %internaNoteringar%, noteWin 
 		}
-	}
-	return
+	}	
+return
 
 ~RButton::
 	MouseGetPos, , , id, control
-	IfInString, control, SysListView
+	IfInString, control, SysListView ; kontrollerar att man klickat i en SysListView
 	{
 		SLV = 1
 	} else {
 		SLV = 0
 	}
-	If ((WinActive("ahk_class wxWindowClassNR") and SLV = 1))
+
+	If (WinActive("ahk_class wxWindowClassNR") and SLV = 1)
 	{
-	    Click, right
+		Click, right
 		Send, {Esc}
-		Gosub, printCheck ; Kollar om print finns - sätter 'printExist'
-		Gosub, KundOrder  ; Hämtar kundnamn och ordernummer och placerar i 'KundOchOrdernummer'	
-		Gosub, anvNamn
-		menu, context, add, &Hitta Print-PDF, printGet		; Lägger till "Hitta Print-PDF" i menyn
-		menu, context, Icon, &Hitta Print-PDF, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\check.ico
-		if (printExist = 0)
+		if (menuOn = 1)
 		{
-			menu, context, disable, &Hitta Print-PDF			; Om ingen print finns, avaktivera menyvalet
-			menu, context, Icon, &Hitta Print-PDF, c:\Windows\system32\SHELL32.dll, 132
-		} 
-		else if (printExist = 1) 
-		{
-			menu, context, enable, &Hitta Print-PDF			; Om print finns, aktivera menyvalet
+			menu, Menu, DeleteAll
 		}
-		menu, context, add, Sök på ordernummer, SokOrder	; Söker på ordernummret
-		menu, context, Icon, Sök på ordernummer, c:\Windows\system32\SHELL32.dll, 210
-		menu, context, add, Kopiera kundnamn och ordernummer, KopieraOrdernummerKundnamn		; Kopierar kundnamn och ordernummer till clipboard
-		menu, context, Icon, Kopiera kundnamn och ordernummer, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\kopiera.ico
-		menu, context, add, Boka annons i C&xense, BokaCX	
-		menu, context, Icon, Boka annons i C&xense, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\cx.ico
-		menu, context, add, Starta Annons (Photoshop), StartaAnnonsPS		; Startar photoshop med mall baserad på annonsstorlek
-		menu, context, Icon, Starta Annons (Photoshop), G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\photoshop.ico
-		menu, context, add, Starta Annons (Flash), StartaAnnonsFlash		; Startar flash med mall baserad på annonsstorlek
-		menu, context, Icon, Starta Annons (Flash), G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\flash.ico
-		menu, context, add, &Tilldela och bearbeta, TilldelaBearbeta			; Markerar som "bearbetas" och tilldelar till användaren
-		menu, context, Icon, &Tilldela och Bearbeta, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\tilldela.ico
-		menu, context, add, Öppna kundmapp, OppnaKundmapp
-	    ;menu, context, add, Skapa egen notering, skapaNotering
-
-		; SUBMENY 'STATUS'
-		menu, status, add, Klar, Klar
-		menu, status, Icon, Klar, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\klar.ico
-		menu, status, add, Bearbetas, Bearbetas
-		menu, status, Icon, Bearbetas, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\bearbetas.ico
-		menu, status, add, Korrektur Skickat, KorrSkickat
-		menu, status, Icon, Korrektur Skickat, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\korr.ico
-		menu, status, add, Korrektur Klart, KorrKlart
-		menu, status, Icon, Korrektur Klart, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\korr.ico
-		menu, status, add, Vilande, Vilande
-		menu, status, Icon, Vilande, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\vilande.ico
-		menu, status, add, Manus på mail, ManusPaMail
-		menu, status, Icon, Manus på mail, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\vilande.ico
-		menu, status, add, Undersöks, Undersoks
-		menu, status, Icon, Undersöks, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\undersoks.ico
-		menu, status, add, Arkiverad, Arkiverad
-		menu, status, Icon, Arkiverad, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\arkiverad.ico
-		menu, status, add, Ny, Ny
-		menu, status, Icon, Ny, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\ny.ico
-		menu, status, add, Repetition, Repetition
-		menu, status, Icon, Repetition, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\rep.ico
-		menu, status, add, Lev. Färdig, LevFardig
-		menu, status, Icon, Lev. Färdig, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\lmenu\fardig.ico
-		menu, status, add, Tilldela ingen, TilldelaIngen
-		menu, status, add, Tilldela..., Tilldela
-		menu, context, add, Statusar, :Status
-		menu, context, Icon, Statusar, c:\Windows\system32\SHELL32.dll, 099
-		;menu, context, add,
-		menu, context, add, Skicka Korrmail, Korrmail
-		menu, context, Icon, Skicka Korrmail, c:\Windows\system32\SHELL32.dll, 157
-		menu, context, add, Maila säljare, fragaSaljare
-		menu, context, Icon, Maila säljare, c:\Windows\system32\SHELL32.dll, 157
-		menu, Traffic, add, Felaktig order, FelaktigOrder
-		menu, Traffic, Icon, Felaktig order, c:\Windows\system32\SHELL32.dll, 110
-		menu, Traffic, add, Öppna i AdBooker, OppnaAdBooker
-		menu, Traffic, add, Kontrollera printannonser, printBatch
-		menu, Traffic, add, Räkna exponeringar, raknaExponeringar
-		menu, Traffic, add, Räkna kampanjer, raknaValda
-		menu, Traffic, add, Manus på mail, ManusPaMail
-		menu, Traffic, add, Undersöks, Undersoks
-		menu, Traffic, add, Rapport, Rapport
-		menu, Traffic, Icon, Rapport, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\rapport.ico
-		menu, context, add, Traffic, :Traffic
-		menu, context, Icon, Traffic, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\ico\traffic.ico
-		Menu, context, Show						; Visar menyn
-		return	
-	} else {
-
-	}
-return
-
-
-; -----------------------------------------
-; --------------- INFO --------------------
-; -----------------------------------------
-
-;~LButton::
-;	control =
-;	MouseGetPos, , , id, control
-;	if (InStr(control, SysListView))
-;	{
-;	Send ^c
-;		sleep, 100
-;		filePath = 
-;		txtPath = 
-;		ControlSetText, Static29, , Atex MediaLink
-;		ControlSetText, Static28, , Atex MediaLink
-;		Gosub, KundOrder
-
-;		filePath = G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\assets\noteringar\
-;		txtPath = %filePath%%OrderNummer%.txt
-;		if FileExist(txtPath)
-;		{
-;		FileRead, NoteringsText, %filePath%%OrderNummer%.txt
-;		ControlMove, Static23,,,, 15, Atex MediaLink
-;		ControlMove, Static22,,,, 15, Atex MediaLink
-;		;ControlMove, Static28,,,, 70, Atex MediaLink
-;		ControlMove, Static29,,,, 70, Atex MediaLink
-;		ControlSetText, Static28, Notering, Atex MediaLink
-;		ControlSetText, Static29, %NoteringsText%, Atex MediaLink
-;		return
-;		} else {
-;		ControlSetText, Static29, , Atex MediaLink
-;		ControlSetText, Static28, , Atex MediaLink
-;		return
-;		}
-;	} 
-;	if (InStr(control, Button10))
-;	{
-;		filePath = G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\assets\noteringar\
-;		txtPath = %filePath%%OrderNummer%.txt
-
-;		WinWaitActive, Annonsnummer
-;		ControlGetText, internaNoteringar, Edit1, Annonsnummer
-;		if FileExist(txtPath)
-;		{
-;			Sleep, 100
-;			FileRead, egnaNoteringar, %txtPath%
-;			allaNoteringar = %internaNoteringar%`n`r`n`r* * * * * * `n`rEgna noteringar:`n`r%egnaNoteringar%
-;			ControlSetText, Edit1, %allaNoteringar%, Annonsnummer
-;		}
-
-;	}
-;	return
-
-
-
-
-;skapaNotering:
-;	filePath = G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\assets\noteringar\
-;	FileRead, NoteringsText, %filePath%%OrderNummer%.txt
-;	InputBox, inputNotering, Egna noteringar, Ange eller ändra egna noteringar här.,,,,,,,,%NoteringsText%
-;	if ErrorLevel
-;		Return
-;	Else
-;	if fileExist(filePath)
-;	{
-;		FileDelete, %filePath%%OrderNummer%.txt
-;		FileAppend, %inputNotering%, %filePath%%OrderNummer%.txt
-;		FileRead, NoteringsText, %filePath%%OrderNummer%.txt
-;		ControlSetText, Static29, %NoteringsText%, Atex MediaLink
-;		} else {
-;			FileCreateDir, %filePath%
-;			FileDelete, %filePath%%OrderNummer%.txt
-;			FileAppend, %inputNotering%, %filePath%%OrderNummer%.txt
-;			FileRead, NoteringsText, %filePath%%OrderNummer%.txt
-;			ControlSetText, Static29, %NoteringsText%, Atex MediaLink
-;			return
-;		}
-
-;		return
-
-
-; -----------------------------------------
-; --------------- MENYVAL -----------------
-; -----------------------------------------
-
-anvNamn:
-	WinGetTitle, Windowtext, Atex MediaLink
-	StringSplit, WindowSplit, Windowtext, =
-	Anvandare =  %WindowSplit2%
-	return
-
-
-printCheck:
-	Send, ^c
-	;Sleep, 50
-	SokVag = \\nt.se\Adbase\Annonser\Ad\
-	OrderNummer := Clipboard
-	StringTrimRight, OrderNummerUtanMnr, OrderNummer, 3
-	StringTrimLeft, SistaTvaSiffrorna, OrderNummerUtanMnr, 8
-	StringTrimLeft, OrderNummerUtanNollor, OrderNummerUtanMnr, 3
-	NySokVag = %SokVag%%SistaTvaSiffrorna%\10%OrderNummerUtanNollor%-01.pdf
-	printExist = 0
-	IfExist, %NySokVag%
-	{
-		printExist = 1
-	    return
-	} else {
-		return
-	}
-	return
-
-KundOrder:
-	OrderNummer := Clipboard
-	ControlGetText,kund,Static32, Atex MediaLink
-	StringReplace, kund, kund, Kontaktperson, , All
-	StringReplace, kund, kund, `n, , All
-	StringReplace, kund, kund, `r, , All
-	KundOchOrdernummer = %kund% (%OrderNummer%)
-	return
-
-printGet:
-	Run, %nySokVag%
-	return
-
-SokOrder:
-	ControlFocus, Edit1, A
-	Send, {Backspace 15}%OrderNummer%{Backspace 3}{Enter}
-	return
-
-Korrmail:
-	RapportURL = 0
-	ControlGetText,epost,Static54, Atex MediaLink
-	Send, !s{TAB}akkkkkk{TAB}{Enter}
-	Sleep, 50
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% mailade korrektur på %OrderNummer% till %epost%`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	Gosub, RapportURL
-	WinActivate, Microsoft Outlook
-	Sleep, 100
-	Send, ^n
-	Sleep, 50
-	Send, %epost%{Alt down}m{Alt up} Korrektur: %KundOchOrdernummer%{Tab}
-	if (RapportURL != 0)
-	{
-		SetKeyDelay, 0
-		Send, {Enter 2}----{Enter 2}%RapportURL%
-	}
-	return
-
-fragaSaljare:
-	ControlGetText,epost,Static54, Atex MediaLink
-	Send, !s{TAB}au{TAB}{Enter}
-	Sleep, 50
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% mailade ang. %OrderNummer% till %epost%`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	WinActivate, Microsoft Outlook
-	Sleep, 100
-	Send, ^n
-	Sleep, 50
-	Send, %epost%{Alt down}m{Alt up} Fråga: %KundOchOrdernummer%{Tab}
-	return
-
-FelaktigOrder:
-	Sleep, 50
-	Send, !a{TAB}%Anvandare%{TAB}{Enter}
-	Sleep, 50
-	Send, !s{TAB}au{TAB}{Enter}
-
-	ControlGetText,epost,Static54, Atex MediaLink
-	Gui, Add, Text, x12 y10 w180 h20 , Ange vilka fel som finns på ordern:
-	Gui, Add, CheckBox, x12 y40 w180 h30 vGUIsen , Sent bokad
-	Gui, Add, CheckBox, x12 y70 w180 h30 vGUImanus, Manus saknas/ej komplett
-	Gui, Add, CheckBox, x12 y100 w180 h30 vGUImaterial, Material saknas
-	Gui, Add, Button, x52 y130 w90 h30 gOK , OK
-	Gui, Show, xCenter yCenter h166 w208, New GUI Window
-	return
-
-KopieraOrdernummerKundnamn:
-	IfInString, kund, &&
-	{
-		StringReplace, kund, kund, &&, &
-	}
-	KundOrder = %kund% (%OrderNummer%)
-	Clipboard = %KundOrder%
-	ToolTip, Kopierat: %KundOrder%
-		SetTimer, RemoveToolTip, 1500
-	return
-
-OppnaAdbooker:
-	Sleep, 50
-	IfWinNotExist, AdBooker
-	{
-		MsgBox,0, Fel, AdBooker måste startas för att denna funktion ska fungera.
-		return
-	}
-	WinActivate, AdBooker
-	Send, ^k
-	Send, {Tab 13}
-	Send, %OrderNummer%
-	Send, ^o
-	return
-
-
-; -----------------------------------------
-; --------------- STATUSAR ----------------
-; -----------------------------------------
-TilldelaBearbeta:
-	Sleep, 50
-	Send, !a{TAB}%Anvandare%{TAB}{Enter}
-	Send, !s{TAB}ab{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Bearbetas"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-Klar:
-	Sleep, 50
-	Send, !s{TAB}ak{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Klar"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-Bearbetas:
-	Sleep, 50
-	Send, !s{TAB}ab{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Bearbetas"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-KorrSkickat:
-	Sleep, 50
-	Send, !s{TAB}akkkkkk{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Korrektur Skickat"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-
-KorrKlart:
-	Sleep, 50
-	Send, !s{TAB}akkkkk{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Korrektur Klart"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-Vilande:
-	Sleep, 50
-	Send, !s{TAB}av{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Vilande"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-ManusPaMail:
-	Sleep, 50
-	Send, !a{TAB}mmmm{TAB}{Enter}
-	Send, !s{TAB}av{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Manus på Mail"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-Undersoks:
-	Sleep, 50
-	Send, !a{TAB}%Anvandare%{TAB}{Enter}
-	Send, !s{TAB}au{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Undersöks"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-Arkiverad:
-	Sleep, 50
-	Send, !s{TAB}a{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Arkiverad"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-Ny:
-	Sleep, 50
-	Send, !s{TAB}n{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Ny"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-Repetition:
-	Sleep, 50
-	Send, !s{TAB}rr{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Repetition"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-LevFardig:
-	Sleep, 50
-	Send, !s{TAB}l{TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% satte %OrderNummer% till "Lev. Färdig"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-FlerStatusar:
-	Sleep, 50
-	Send, !s
-	Return
-
-Tilldela:
-	Sleep, 50
-	Send, !a
-	return
-
-TilldelaIngen:
-	Sleep, 50
-	Send, !a{TAB} {TAB}{Enter}
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% tog bort tilldelning på %OrderNummer% `n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	return
-
-
-; -----------------------------------------
-; --------------- GUI ---------------------
-; -----------------------------------------
-
-GuiClose:
-	Gui, Destroy
-	return
-
-
-OK:
-	Gui, Submit
-	Gui, Destroy
-	if GUIsen = 1
-	{
-		Sentbokad = Sent bokad (material och manus ska finnas 2 arbetsdagar innan startdatum). Om inte ordern bokas fram finns risk att den inte blir producerad.`n
-	} else {
-		Sentbokad =
-	}
-
-	if GUImanus = 1
-	{
-		Manus = Manus saknas/är inkomplett i interna noteringar`n
-	} else {
-		Manus =
-	}
-
-	if GUImaterial = 1
-	{
-		Material = Material saknas eller har ett startdatum senare än webbannonsens. Material ska vara oss tillhanda 2 arbetsdagar innan annonsstart.`n
-	} else {
-		Material =
-	}
-	FileAppend,
-		(
-			%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% mailade %epost% ang. felaktig order (%OrderNummer%) och satte den som  "Undersöks"`n
-		),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	WinActivate, Microsoft Outlook
-	Sleep, 100
-	Send, ^n
-	Sleep, 50
-	Send, %epost%{Alt down}m{Alt up} Ej komplett/korrekt order: %KundOchOrdernummer%{Tab}
-	Sleep, 50
-	SetKeyDelay, 0
-	Send, Din bokning, {Ctrl down}f{Ctrl up}%KundOchOrdernummer%{Ctrl down}f{Ctrl up}, är inte komplett/korrekt och kan inte produceras till det datum den är bokad.`nVar vänlig se över bokningen.`n`n{Ctrl down}f{Ctrl up}Upptäckt problem:{Ctrl down}f{Ctrl up}`n%Sentbokad%%Manus%%Material%
-	SetKeyDelay, 10
-	return
-
-; -----------------------------------------
-; --------- STARTA ANNONS -----------------
-; -----------------------------------------
-
-StartaAnnonsPS:
-	Gosub, getFromList
-	Send, !a{TAB}%Anvandare%{TAB}{Enter}
-	Send, !s{TAB}ab{TAB}{Enter}
-	Sleep, 50
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% startade produktion av %OrderNummer% i Photoshop. Status "Bearbetas"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	Gosub, getFormat
-	Gosub, getTidning
-	ControlGetText, datum, Static13, Atex MediaLink
-	StringReplace, datum, datum,-,,All
-	StringReplace, kund, mlKundnamn,:,,All
-	StringReplace, kund, kund,\,,All
-	StringReplace, kund, kund,/,,All
-	StringTrimLeft,datum,datum,2
-	StringLen, tecken, kund
-	tecken := tecken - 1
-	StringTrimRight, forstaBokstavKundnamn, kund, %tecken%
-
-	filePath = G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%\%forstaBokstavKundnamn%\%kund%\%datum%\
-	Template = G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\assets\copy\
-	if fileExist(filePath)
-	{
-		FileCopy, %Template%%format%.psd, %filePath%%mlTidning%%mlFormat%-%kund%-%datum%.psd
-		run, %filePath%%mlTidning%%mlFormat%-%kund%-%datum%.psd
-	} else {
-		FileCreateDir, %filePath%
-		FileCopy, %Template%%format%.psd, %filePath%%mlTidning%%mlFormat%-%kund%-%datum%.psd
-		run, %filePath%%mlTidning%%mlFormat%-%kund%-%datum%.psd
-	}
-	return
-
-StartaAnnonsFlash:
-	Gosub, getFromList
-	Send, !a{TAB}%Anvandare%{TAB}{Enter}
-	Send, !s{TAB}ab{TAB}{Enter}
-	Sleep, 50
-	FileAppend,
-	(
-		%A_YYYY%-%A_MM%-%A_DD%  %A_Hour%:%A_Min%   %Anvandare% startade produktion av %OrderNummer% i Flash. Status "Bearbetas"`n
-	),G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\log\log.txt
-	Gosub, getFormat
-	Gosub, getTidning
-	Gosub, getFromList
-	ControlGetText, datum, Static13, Atex MediaLink
-	StringReplace, datum, datum,-,,All
-	StringReplace, kund, mlKundnamn,:,,All
-	StringReplace, kund, kund,\,,All
-	StringReplace, kund, kund,/,,All
-	StringTrimLeft,datum,datum,2
-	StringLen, tecken, kund
-	tecken := tecken - 1
-	StringTrimRight, forstaBokstavKundnamn, kund, %tecken%
-	filePath = G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%\%forstaBokstavKundnamn%\%kund%\%datum%\
-	Template = G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\assets\copy\
-	if fileExist(filePath)
-	{
-		FileCopy, %Template%%format%.fla, %filePath%%mlTidning%%mlFormat%-%kund%-%datum%.fla
-		run, %filePath%%mlTidning%%mlFormat%-%kund%-%datum%.fla
-	} else {
-		FileCreateDir, %filePath%
-		FileCopy, %Template%%format%.fla, %filePath%%mlTidning%%mlFormat%-%kund%-%datum%.fla
-		run, %filePath%%mlTidning%%mlFormat%-%kund%-%datum%.fla
-	}
-	return
-
-
-OppnaKundmapp:
-	ControlGetText, datum, Static13, Atex MediaLink
-	StringReplace, datum, datum,-,,All
-	StringTrimLeft,datum,datum,2
-	StringLen, tecken, kund
-	tecken := tecken - 1
-	StringReplace, kund, kund,:,,All
-	StringReplace, kund, kund,\,,All
-	StringReplace, kund, kund,/,,All
-	StringTrimRight, forstaBokstavKundnamn, kund, %tecken%
-	filePath = G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%\%forstaBokstavKundnamn%\%kund%\
-	if fileExist(filePath)
-	{
-		run, %filePath%
-	} else {
-		MsgBox, Mappen "%filePath% finns inte.
-	}
-
-	return
-
-; -----------------------------------------
-; --------------- SUBS --------------------
-; -----------------------------------------
-
-
-getKundnamn:
-	ControlGetText, mlKundnamn, Static32, Atex MediaLink
-	IfInString, mlKundnamn, &&
-	{
-		StringReplace, mlKundnamn, mlKundnamn, &&, &
-	}
-	Return
-
-getTidning:
-	ControlGetText, tidning, Static23, Atex MediaLink
-	StringSplit, tidningRaw, tidning, %A_Space%
-	mlTidning = %tidningRaw1%
-	if mlTidning = NT
-	{
-		mlTidning = NTFB
-	}
-	if tidningRaw2 = gotland.net
-	{
-		mlTidning = GN
-	}
-	if tidningRaw2 = Affärsliv.com
-	{
-		mlTidning = AF
-	}
-	return
-
-getFormat:
-	ControlGetText, format, Static19, Atex MediaLink	
-	if (format = "320 x 80" or format = "320 x 160" or format = "320 x 320" or format = "320 x 180")
-	{
-		mlFormat = MOB
-	}
-
-	if (format = "250 x 240" or format = "200 x 240" or format = "250 x 360")
-	{
-		mlFormat = WID
-	}
-
-	if (format = "980 x 120" or format = "980 x 240" or format = "980 x 480" or format = "844 x 178")
-	{
-		mlFormat = PAN
-	}
-
-	if (format = "468 x 240" or format = "468 x 480")
-	{
-		mlFormat = MOD
-	}
-
-	if (format = "468 x 360" or format = "468 x 480")
-	{
-		mlFormat = MOD
-	}
-
-	if (format = "250 x 600" or format = "200 x 600")
-	{
-		mlFormat = OUT
-	}
-
-	if (format = "1920 x 1080")
-	{
-		mlFormat = 1920
-	}
-
-	if (format = "1080 x 1920")
-	{
-		mlFormat = 1080
-	}
-
-	if (format = "1024 x 384")
-	{
-		mlFormat = 1024
-	}
-
-	if (format = "768 x 384")
-	{
-		mlFormat = 768
-	}
-
-	if (format = "512 x 128")
-	{
-		mlFormat = 512
-	}
-
-	if (format = "180 x 180")
-	{
-		mlFormat = 180
-	}
-
-	if (format = "380 x 280" or format = "250 x 360")
-	{
-		mlFormat = 380
-	}
-	if (format = "468 x 240" and mlTidning = "AF")
-	{
-		mlFormat = 
-	}
-	return
-
-
-RemoveToolTip:
-SetTimer, RemoveToolTip, Off
-ToolTip
-return
-
-
-printBatch:
-StatusBarGetText, xAds, 3, Atex MediaLink
-StringSplit, xAds, xAds, %A_Space%
-xAds = %xAds1%
-msgbox, Vill du gå igenom %xAds% annonser?
-adCount = 0
-printAds = 0
-while (adCount < xAds)
-{
-	adCount++
-	Send, {Control Down}
-	Sleep, 50
-	Send, C
-	Sleep, 50
-	Send, {Control Up}
-	SokVag = \\nt.se\Adbase\Annonser\Ad\
-	OrderNummer := Clipboard
-	StringTrimRight, OrderNummerUtanMnr, OrderNummer, 3
-	StringTrimLeft, SistaTvaSiffrorna, OrderNummerUtanMnr, 8
-	StringTrimLeft, OrderNummerUtanNollor, OrderNummerUtanMnr, 3
-	NySokVag = %SokVag%%SistaTvaSiffrorna%\10%OrderNummerUtanNollor%-01.pdf
-	sleep, 50
-	IfExist, %NySokVag%
-	{
-		Send, !s{TAB}av{TAB}{Enter}
-		printAds++
-		sleep, 50
-
-	}
-	sleep, 50
-	Send, {Down}
-}
-msgbox, Klar!`n%printAds% annonser av %xAds% hade printmaterial tillgängligt.
-return
-
-raknaExponeringar:
-	send, {esc}
-	Gosub, anvNamn
-	sleep, 150
-	ControlGet, exponeringar, List, Selected, SysListView321, Atex MediaLink
-	sleep, 100
-	ControlGet, antal, List, Count Selected, SysListView321, Atex MediaLink
-	totExp = 0
-	count = 0
-	if (Anvandare = "martinve")
-	{
-		Loop, Parse, exponeringar, `n
+		; Huvudmenyn
+		; Printcheck
+		gosub, getList
+		printCheck(mlOrdernummer) ; Kolla om markerad order har en printannons klar på mtrl -01
+		menu, Menu, add, &Hitta Print-PDF, printCheck
+		menu, Menu, Icon, &Hitta Print-PDF, %iconDir%\inteprint.ico
+		menu, Menu, disable, &Hitta Print-PDF
+		if (printFinns = 1) ; Om print finns
 		{
-			StringSplit, expCount, A_LoopField, `t
-			totExp := totExp + expCount13
-
-			count++
-			if (count = antal)
-			{
-				break
-			}
-		}
-	} else {
-		Loop, Parse, exponeringar, `n
-		{
-			StringSplit, expCount, A_LoopField, `t
-			totExp := totExp + expCount10
-
-			count++
-			if (count = antal)
-			{
-				break
-			}
-		}
-	}
-	msgbox, Totalt antal begärda exponeringar: %totExp%
-	return
-
-raknaValda:
-	ControlGet, antal, List, Count Selected, %control%, Atex MediaLink
-	Msgbox, %antal% kampanjer markerade.
-	return
-
-
-; //////////////////////////////////////////////////
-; CXENSE INBOKNING
-; //////////////////////////////////////////////////
-
-BokaCX:
-	FileCreateDir, %A_AppData%\AHK
-	userFolder = %A_AppData%\AHK\
-	; VARIABLE RESET
-	mlStartdatum = 0
-	mlStoppdatum = 0
-	mlExponeringar = 0
-	mlKundnr = 0
-	mlKundnamn = 0
-	mlOrdernr = 0
-	mlTidning = 0
-	mlFormat = 
-	mlInternetenhet =
-
-
-	Gosub, CxenseBokning
-	return
-
-getOrdernr:
-	Sleep, 50
-	Send, ^C
-	Sleep, 50
-	mlOrdernr := Clipboard
-	Return
-
-getFromList:
-	MouseGetPos, , , id, control
-	IfInString, control, SysListView
-	{
-	ControlGet, getList, List, Selected, %control%, Atex MediaLink
-	StringSplit, getListRow, getList, `n
-	listRow = %getListRow1%
-	Stringsplit, listArr, listRow, `t
-	Gosub, anvNamn
-	if (Anvandare = "martinve")
-		{
-			mlStartdatum = %listArr9%
-			mlStoppdatum = %listArr10%
-			mlExponeringar = %listArr13%
-			mlKundnr = %listArr7%
-			mlKundnamn = %listArr8%
-		}
-	if (Anvandare = "anniejo")
-		{
-			mlStartdatum = %listArr5%
-			mlStoppdatum = %listArr6%
-			mlExponeringar = %listArr11%
-			mlKundnr = %listArr10%
-			mlKundnamn = %listArr8%
-		}
-	if (Anvandare = "annicasv")
-		{
-			mlStartdatum = %listArr5%
-			mlStoppdatum = %listArr6%
-			mlExponeringar = %listArr9%
-			mlKundnr = %listArr10%
-			mlKundnamn = %listArr11%
-		}
-	if (Anvandare = "mikaellu")
-		{
-			mlStartdatum = %listArr8%
-			mlStoppdatum = %listArr9%
-			mlExponeringar = %listArr12%
-			mlKundnr = %listArr13%
-			mlKundnamn = %listArr5%
-		}
-	if (Anvandare = "dennisst")
-		{
-			mlStartdatum = %listArr6%
-			mlStoppdatum = %listArr7%
-			mlExponeringar = %listArr10%
-			mlKundnr = %listArr11%
-			mlKundnamn = %listArr12%
-		}
-	if (Anvandare = "ericama")
-		{
-			mlStartdatum = %listArr7%
-			mlStoppdatum = %listArr8%
-			mlExponeringar = %listArr11%
-			mlKundnr = %listArr2%
-			mlKundnamn = %listArr3%
-		}
-	ControlGetText, mlInternetenhet, Static17, Atex MediaLink
-	if (mlInternetenhet = "Textannons")
-	{
-		mlInternetenhet = "TXT"
-	}
-	if (mlInternetenhet = "Affärsliv Mittbanner")
-	{
-		mlInternetenhet = "580"
-	}
-	if (mlInternetenhet != "TXT" or mlInternetenhet != "Affärsliv Mittbanner")
-	{
-		mlInternetenhet =
-	}
-
-	}
-	return
-
-; ---------------------------------------
-; ----PRODUKT-IDn -----------------------
-; ---------------------------------------
-
-;;---- Riktade
-;RiktadMOD = 00000001609df500
-;RiktadOUT = 00000001609df509
-;RiktadPAN = 00000001609df502
-;RiktadWID = 00000001609df506
-
-;;---- ROS
-;RosMOD = 0000000160209522
-;RosOUT = 0000000160209517
-;RosPAN = 00000001601d3817
-;RosWID = 0000000160209515
-
-;;---- PLUGG
-;PluggMOD = 000000016020bf61
-;PluggOUT = 000000016020bf38
-;PluggPAN = 000000016020bf82
-;PluggWID = 000000016020bf85
-
-
-
-
-
-
-CxenseBokning:
-	Gosub, getFromList			; mlStartdatum, mlStoppdatum, mlKundnr, mlExponeringar, mlKundnamn
-	StringReplace, mlKundnamn, mlKundnamn,:,,All
-	StringReplace, mlKundnamn, mlKundnamn,\,,All
-	StringReplace, mlKundnamn, mlKundnamn,/,,All
-	StringReplace, mlKundnamn, mlKundnamn,&&,,All
-	StringReplace, mlKundnamn, mlKundnamn,&,,All
-	Gosub, getOrdernr			; mlOrdernr
-	Gosub, getTidning			; mlTidning
- 	Gosub, getFormat			; mlFormat
-	Gosub, xmlGET
-	if (mlKundnamn = 0 || mlOrdernr = 0 || mlTidning = 0)
-	{
-		MsgBox, 48, Eeeh.. oops., Något har gått snett, prova igen!
-		Msgbox, Format: %mlFormat%`r`nTidning: %mltidning%`r`n%mlOrdernr%, %mlKundnamn%
-		Goto, TheEND
-	}
-	checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
-
-	FileRead, xmlOut, %userFolder%xmlOut.xml
-	StringReplace, xmlOut, xmlOut, <cx:childFolder>, +, A
-	xmlPart = 0
-	Loop, Parse, xmlOut, +
-	{
-		xmlIndex++
-		if InStr(A_LoopField, checkKundNR)
-		{
-			xmlPart = %A_LoopField%
-			break
-		}
-	}
-	if (xmlPart != 0)
-	{
-		StringSplit, xmlSplit, xmlPart, >
-		StringSplit, xmlSplit, xmlSplit4, <
-		xmlID = %xmlSplit1% ; xmlID innehåller kundens ID
-	}
-	if (xmlPart = 0) ; Kund kunde inte hittas
-	{
-		MsgBox, 4, Kund saknas, Kund fanns inte. Skapa kund "%mlTidning% - %mlKundnr% - %mlKundnamn%"?
-		IfMsgBox Yes 
-		{
-		FileDelete, %userFolder%bat.bat
-		FileDelete, %userFolder%xml.xml
-		FileDelete, %userFolder%xmlOut.xml
-		FileDelete, %userFolder%create.xml
-		xmlToRun =
-(
-<?xml version="1.0" encoding="UTF-8"?>
-<cx:folder xmlns:cx="http://cxense.com/cxad/api/cxad">
-  <cx:name>%mlTidning% - %mlKundnr% - %mlKundnamn%</cx:name>
-</cx:folder>
-)
-		batToRun = 
-(
-G:
-cd G:\NTM\NTM Digital Produktion\cURL\bin
-curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/folder/advertising -d @%userFolder%xml.xml > %userFolder%create.xml
-)
-		FileAppend, %batToRun%, %userFolder%bat.bat
-		FileEncoding, UTF-8-RAW
-		FileAppend, %xmlToRun%, %userFolder%xml.xml
-		FileEncoding
-		Sleep, 100
-		Run, %userFolder%bat.bat,,Min
-		SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
-		Sleep, 150
-		WinWaitClose, C:\Windows\system32\cmd.exe
-		SplashImage, Off
-		MsgBox,1, Kund inlagd, Kund inlagd. Boka kampanj?
-		ifMsgBox, Cancel
-		{
-			Goto, TheEND
-		}
-		ifMsgBox, OK
-		{
-			FileRead, xmlCreate, %userFolder%create.xml
-			StringSplit, xmlSplit, xmlCreate, >
-			StringSplit, xmlSplit, xmlSplit6, <
-			xmlID = %xmlSplit1% ; xmlID innehåller kundens ID
-			Goto, bokaKampanjCX
-		}
-		return
-		}
-		IfMsgBox, No
-		{
-			Goto, TheEND
-		}
-		Goto, bokaKampanjCX
-	return
-	}
-	Goto, bokaKampanjCX
-	Return
-return
-
-
-;bokaCampaignCX:
-;	Type = 0
-;	Gui, Add, DropDownList, x4 y20 w158 h40 vType R4, Run On Site||Riktad|Plugg|Reach
-;	Gui, Add, Button, x42 y50 w100 h30 gBokaKampanj, OK
-;	Gui, Show, xCenter yCenter h103 w190 , Välj typ
-;	return
-
-
-
-xmlGET:
-FileDelete, %userFolder%bat.bat
-FileDelete, %userFolder%xmlOut.xml
-sleep, 100
-batToRun = 
-(
-G:
-cd G:\NTM\NTM Digital Produktion\cURL\bin
-curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/folder/advertising > %userFolder%xmlOut.xml
-)
-FileAppend, %batToRun%, %userFolder%bat.bat
-Run, %userFolder%bat.bat,,Min
-SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
-Sleep, 150
-WinWaitClose, C:\Windows\system32\cmd.exe
-SplashImage, Off
-fileToCheck = %userFolder%xmlOut.xml
-Loop, 40
-{
-	if fileExist(fileToCheck)
-	{
-		break
-	}
-	Sleep, 250
-}
-if !fileExist(fileToCheck)
-{
-	Goto, TheEND
-}
-return
-
-
-
-; ------------------- ;
-
-
-^!D::
-	FileRead, xmlOut, %userFolder%xmlOutDemo.xml
-	StringSplit, xmlSplit, xmlOut, >
-	StringSplit, xmlSplit, xmlSplit6, <
-	campaignID = %xmlSplit1% ; campaignID innehåller kampanjens ID
-	MsgBox, ID: %campaignID%
-
-
-bokaKampanjCX:
-	advertisingFolder = %mlTidning% - %mlKundnr% - %mlKundnamn%
-	campaign = %mlTidning% - %mlFormat%%mlInternetenhet% - %mlOrdernr%
-	
-	;---- Preset
-	Type = 0
-	FileDelete, %userFolder%xml.xml
-	FileDelete, %userFolder%xmlOut.xml
-	Sleep, 500
-	FileAppend, %xmlToRun%, %userFolder%xml.xml
-	StringReplace, mlStartdatumStrip, mlStartdatum, - ,, All
-	StringReplace, mlStoppdatumStrip, mlStoppdatum, - ,, All
-	StringTrimLeft, mlStartdatumStripYY, mlStartdatumStrip, 2
-	FormatTime, idag, , yyyyMMdd
-	checkDate := mlStartdatumStrip - idag
-	if (checkDate < 0)
-	{
-		MsgBox,48,Fel i startdatum, Startdatumet på kampanjen har redan passerat. `r`nDagens datum har satts som startdatum istället.
-		mlStartdatumStrip = %idag%
-	}
-
-	; -- NY BOKNINGSMENY
-	Gui, Add, GroupBox, x12 y10 w420 h180 , Bokningsöversikt
-	Gui, Add, Text, x22 y40 w80 h20 , Typ:
-	Gui, Add, DropDownList, x142 y40 w120 h20 vType R5, Run On Site||Riktad|Plugg|Reach|Retarget
-	Gui, Add, Text, x22 y70 w100 h20 , Advertising Folder:
-	Gui, Add, Edit, x142 y70 w280 h20 vadvertisingFolder, %advertisingFolder%
-	Gui, Add, Text, x22 y100 w100 h20 , Campaign:
-	Gui, Add, Edit, x142 y100 w280 h20 vcampaign, %campaign%
-	Gui, Add, Text, x22 y130 w110 h20 , Start- och stoppdatum:
-	Gui, Add, DateTime, x142 y130 w120 h20 vmlStartdatum Choose%mlStartdatumStrip%, yyyy-MM-dd
-	Gui, Add, Text, x282 y130 w10 h20 , -
-	Gui, Add, DateTime, x302 y130 w120 h20 vmlStoppdatum Choose%mlStoppdatumStrip%, yyyy-MM-dd
-	Gui, Add, Text, x22 y160 w100 h20 , Exponeringar:
-	Gui, Add, Edit, x142 y160 w280 h20 vmlExponeringar, %mlExponeringar%
-	Gui, Add, Button, x332 y200 w100 h30 gAvbryt, Avbryt
-	Gui, Add, Button, x222 y200 w100 h30 gBokningOK, OK
-	Gui, Show, xCenter yCenter h250 w451, Bokningsöversikt
-	Return
-
-BokningOK:
-		Gui, Submit
-		Gui, Destroy
-		Gosub, productGET ; returnerar ProductID
-		if (Type = "Plugg")
-		{
-			campaign = %mlTidning% - %mlFormat% - PLUGG - %mlOrdernr%
-		}
-		if (Type = "Reach")
-		{
-			campaign = %mlTidning% - REACH - %mlOrdernr%
+			menu, Menu, Icon, &Hitta Print-PDF, %iconDir%\print.ico
+			menu, Menu, enable, &Hitta Print-PDF
 		}
 
-		xmlToRun =
-	(
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<cx:campaign xmlns:cx="http://cxense.com/cxad/api/cxad" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-	<cx:name>%campaign%</cx:name>
-	<cx:productId>%productID%</cx:productId>
-	<cx:perUserCap>
-	<cx:max>0</cx:max>
-	<cx:period>DAILY</cx:period>
-	</cx:perUserCap>
-</cx:campaign>
-	)
-	FormatTime, mlStartdatum, %mlStartdatum%, yyyy-MM-dd
-	FormatTime, mlStoppdatum, %mlStoppdatum%, yyyy-MM-dd
-	Gosub, CPMcheck
-	FileDelete, %userFolder%xml.xml
-	FileDelete, %userFolder%xmlOut.xml
-	Sleep, 500
-	FileEncoding, UTF-8-RAW
-	FileAppend, %xmlToRun%, %userFolder%xml.xml
-	FileEncoding
-	FileDelete, %userFolder%bat.bat
-	batToRun = 
-	(
-	G:
-	cd G:\NTM\NTM Digital Produktion\cURL\bin
-	curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/campaign/%xmlID% -d @%userFolder%xml.xml > %userFolder%xmlOut.xml
-	)
-	FileAppend, %batToRun%, %userFolder%bat.bat
-	Run, %userFolder%bat.bat,,Min
-	SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
-	Sleep, 150
-	WinWaitClose, C:\Windows\system32\cmd.exe
-	SplashImage, Off
-	FileRead, xmlOut, %userFolder%xmlOut.xml
-	StringSplit, xmlSplit, xmlOut, >
-	StringSplit, xmlSplit, xmlSplit6, <
-	campaignID = %xmlSplit1% ; campaignID innehåller kampanjens ID
-	xmlToRun = 
-(
-<?xml version="1.0" encoding="utf-8"?>
-<cx:cpmContract xmlns:cx="http://cxense.com/cxad/api/cxad">
-<cx:startDate>%mlStartdatum%T00:00:00.000+02:00</cx:startDate>
-<cx:endDate>%mlStoppdatum%T23:59:59.000+02:00</cx:endDate>
-<cx:priority>0.50</cx:priority>
-<cx:requiredImpressions>%mlExponeringar%</cx:requiredImpressions>
-<cx:costPerThousand class="currency" currencyCode="SEK" value="%CPM%"/>
-</cx:cpmContract>
-)
-		FileDelete, %userFolder%xml.xml
-		FileEncoding, UTF-8-RAW
-		FileAppend, %xmlToRun%, %userFolder%xml.xml
-		FileEncoding
-		sleep, 100
-		FileDelete, %userFolder%bat.bat
-		batToRun = 
-		(
-		G:
-		cd G:\NTM\NTM Digital Produktion\cURL\bin
-		curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/contract/%campaignID% -d @%userFolder%xml.xml > %userFolder%xmlOut.xml
-		)
-		FileAppend, %batToRun%, %userFolder%bat.bat
-		Run, %userFolder%bat.bat,,Min
+		; cxense-menyn
+		menu, cxense, add, Boka kampanj, cxBokning
+		menu, cxense, add, Öppna i cxense, oppnaCxense
+		menu, cxense, add, Rapport, rapport
+		menu, cxense, Icon, Boka kampanj, %iconDir%\boka.ico
+		menu, cxense, Icon, Öppna i cxense, %iconDir%\oppna.ico
+		menu, cxense, Icon, Rapport, %iconDir%\cxrapport.ico
 
-		Sleep, 500
+		menu, Menu, add, Kopiera kundnamn och ordernummer, kundOrder
+		menu, Menu, add, Sök på ordernummer, sokOrder
+		menu, Menu, add, Tilldela och Bearbeta, statusTilldelaBearbetas
+		menu, Menu, add, Cxense, :cxense
+		menu, Menu, add, Starta annons i Photoshop, startaAnnonsPS
+		menu, Menu, add, Starta annons i Flash, startaAnnonsFlash
+		menu, Menu, add, Öppna kundmapp, oppnaKundmapp
+		menu, Menu, add
+
+
+		; Ikoner för ovanstående
+		menu, Menu, Icon, Kopiera kundnamn och ordernummer, %iconDir%\kopiera.ico
+		menu, Menu, Icon, Sök på ordernummer, %iconDir%\sok.ico
+		menu, Menu, Icon, Tilldela och Bearbeta, %iconDir%\tilldelabearbeta.ico
+		menu, Menu, Icon, Starta annons i Photoshop, %iconDir%\photoshop.ico
+		menu, Menu, Icon, Starta annons i Flash, %iconDir%\flash.ico
+		menu, Menu, Icon, Öppna kundmapp, %iconDir%\kundmapp.ico
+		menu, Menu, Icon, Cxense, %iconDir%\cx.ico
 		
-		FileDelete, %userFolder%xml.xml
-		FileDelete, %userFolder%bat.bat
-		xmlToRun = 
-(
-<?xml version="1.0" encoding="UTF-8"?>
-<cx:ad xmlns:cx="http://cxense.com/cxad/api/cxad">
-  <cx:name>%mlKundnamn% - %mlStartdatumStripYY%</cx:name>
-</cx:ad>
-)
-		batToRun = 
-(
-G:
-cd G:\NTM\NTM Digital Produktion\cURL\bin
-curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/ad/%campaignID% -d @%userFolder%xml.xml
-)
-		FileEncoding, UTF-8-RAW
-		FileAppend, %xmlToRun%, %userFolder%xml.xml
-		FileEncoding
-		FileAppend, %batToRun%, %userFolder%bat.bat
-		Run, %userFolder%bat.bat,,Min
-		SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
-		Sleep, 100
-		WinWaitClose, C:\Windows\system32\cmd.exe
-		SplashImage, Off
-		MsgBox,4, Bokning klar, Inbokning klar, öppna i webbläsaren?
-		IfMsgBox, Yes
-			run, https://cxad.cxense.com/adv/campaign/%campaignID%/overview
-		IfMsgBox, No
-			return
-	return
+		; Status-menyn
+		menu, status, add, Klar, statusKlar
+		menu, status, add, Bearbetas, statusBearbetas
+		menu, status, add, Korrektur skickat, statusKorrSkickat
+		menu, status, add, Korrektur klart, statusKorrekturKlart
+		menu, status, add, Vilande, statusVilande
+		menu, status, add, Manus på Mail, statusManusMail
+		menu, status, add, Undersöks, statusUndersoks
+		menu, status, add, Arkiverad, statusArkiverad
+		menu, status, add, Ny, statusNy
+		menu, status, add, Repetition, statusRep
+		menu, status, add, Lev. Färdig, statusLevFardig
+		menu, status, add, Bokad, statusBokad
+		menu, Menu, add, Status, :status
 
+		; Status-menyn - Ikoner
+		menu, status, Icon, Klar, %iconDir%\klar.ico
+		menu, status, Icon, Bearbetas, %iconDir%\bearbetas.ico
+		menu, status, Icon, Korrektur skickat, %iconDir%\korr.ico
+		menu, status, Icon, Korrektur klart, %iconDir%\korr.ico
+		menu, status, Icon, Vilande, %iconDir%\vilande.ico
+		menu, status, Icon, Manus på Mail, %iconDir%\vilande.ico
+		menu, status, Icon, Undersöks, %iconDir%\undersoks.ico
+		menu, status, Icon, Arkiverad, %iconDir%\arkiverad.ico
+		menu, status, Icon, Ny, %iconDir%\ny.ico
+		menu, status, Icon, Repetition, %iconDir%\rep.ico
+		menu, status, Icon, Lev. Färdig, %iconDir%\fardig.ico
+		menu, status, Icon, Bokad, %iconDir%\ny.ico
+		menu, Menu, Icon, Status, %iconDir%\status.ico
+
+		; Tilldela-menyn
+		menu, tilldela, add, Mig, tilldelaMig
+		menu, tilldela, add, Annan, tilldelaAnnan
+		menu, tilldela, add, Ingen, tilldelaIngen
+		menu, Menu, add, Tilldela..., :tilldela
+		menu, Menu, Icon, Tilldela..., %iconDir%\tilldela.ico
+		menu, tilldela, Icon, Mig, %iconDir%\mig.ico
+		menu, tilldela, Icon, Annan, %iconDir%\annan.ico
+		menu, Menu, add
+
+		; Undre menyn
+		menu, Menu, add, Maila säljare, saljarMail
+		menu, Menu, add, Maila korrektur, korrMail
+		menu, Menu, add, Rapportera felaktig order, rapporteraFel
+		menu, Menu, add
+
+		; Undre meyn - Ikoner
+		menu, Menu, Icon, Maila säljare, %iconDir%\mail.ico
+		menu, Menu, Icon, Maila korrektur, %iconDir%\mail.ico
+		menu, Menu, Icon, Rapportera felaktig order, %iconDir%\rapportera.ico
+		
+		; Traffic-menyn
+		menu, traffic, add, Leta printannonser, kontrolleraPrint
+		menu, traffic, add, Kopiera kampanjer, copyCampaigns
+		menu, traffic, add, Räkna exponeringar, raknaExponeringar
+		menu, traffic, add, Räkna antal markade annonser, raknaValda
+		menu, traffic, add, Uppdatera lager-XML, lager
+		menu, Menu, add, Traffic, :traffic
+		menu, Menu, Icon, Traffic, %iconDir%\traffic.ico
+		
+		; MediaLink Plus-menyn
+		menu, mlp, add, Redigera kolumner, kolumner
+		menu, mlp, add, Kontrollera uppdateringar, updateCheck
+		menu, mlp, add, Inställningar, settings
+		menu, Menu, add, MediaLink Plus, :mlp
+		menu, Menu, Icon, MediaLink Plus, %iconDir%\plus.ico
+		menu, mlp, Icon, Redigera kolumner, %iconDir%\columns.ico
+		menu, mlp, Icon, Kontrollera uppdateringar, %iconDir%\uppdatera.ico
+		menu, mlp, Icon, Inställningar, %iconDir%\settings.ico
+		menu, Menu, Color, FFFFFF 
+		menu, Menu, show
+
+		menuOn = 1
+	}
 return
 
 
-productGET:
-	;---- Riktade
+
+/*
+-----------------------------------------------------------
+	FUNKTIONER
+-----------------------------------------------------------
+*/
+
+printCheck(x)
+{
+	global
+	StringTrimRight, OrderNummerUtanMnr, x, 3 ; Tar bort tre sista tecken i ordernumret, dvs materialnummer inkl bindestreck
+	StringTrimLeft, SistaTvaSiffrorna, OrderNummerUtanMnr, 8 ; Plockar ut sista två siffrorna ur ordernumret
+	StringTrimLeft, OrderNummerUtanNollor, OrderNummerUtanMnr, 3 ; Tar bort inledande nollor i ordernumret
+	sokVag = \\nt.se\Adbase\Annonser\Ad\%SistaTvaSiffrorna%\10%OrderNummerUtanNollor%-01.pdf
+	printFinns = 0
+	ifExist, %sokVag%
+		printFinns = 1
+	return
+}
+
+rensaTecken(ByRef x) ; Rensar ur valda tecken ur en variabel
+{
+		StringReplace, x, x, &&, &, All
+		StringReplace, x, x, /,%A_SPACE%, All
+		StringReplace, x, x, \,%A_SPACE%, All
+}
+stripDash(ByRef x)
+{
+	StringReplace, x, x,-,,All
+}
+
+status(x) ; Sätter status enligt x
+{
+	Send, !s
+	WinWaitActive, Change Status
+	Send, {Tab}
+	Control, ChooseString, %x%, ComboBox1
+	Send, {Tab}{Enter}
+}
+
+assign(x) ; tilldelar till x 
+{
+	Send, !a
+	WinWaitActive, Ändra tilldelad
+	Send, {Tab}
+	Control, ChooseString, %x%, ComboBox1
+	Send, {Tab}{Enter}
+}
+
+mailTo(saljare, subject, ordernummer, kundnamn)
+{
+	SetKeyDelay, 0
+	WinActivate, Microsoft Outlook
+	Run, C:\Program Files (x86)\Microsoft Office\Office14\OUTLOOK.EXE /c IPM.Note
+	WinWaitActive, Namnlös - Meddelande
+	Send, %saljare%
+	Send, !m
+	Send, %subject% %kundnamn% (%ordernummer%){Tab}
+}
+
+getFormat(x)
+{
+	global
+	;Skyltar
+	if (x = "Eurosize")
+		{
+		format = 1080x1920
+		file = 1080 x 1920
+		}
+	if (x = "Söderköpingsvägen")
+		{
+		format = 1024x384	
+		file = 1024 x 384
+		}
+	if (x = "Hamnbron")
+		{
+		format = 1024x384
+		file = 1024 x 384
+		}
+	if (x = "Sjötull")
+		{
+		format = 512x128
+		file = 512 x 128
+		}
+	if (x = "Skylt HD")
+		{
+		format = 1920x1080
+		file = 1920 x 1080
+		}
+	if (x = "Ståthögaleden")
+		{
+		format = 768x384
+		file = 768 x 384
+		}
+	if (x = "östcentrum Visby")
+		{
+		format = 1920x720
+		file = 1920 x 720
+		}
+
+	; Moduler
+	if (x = "Artikel 120")
+	{
+		format = MOD
+		file = 468 x 120
+	}
+	if (x = "Mittbanner 1")
+	{
+		format = MOD
+		file = 468 x 240
+	}
+	if (x = "Modul 240")
+	{
+		format = MOD
+		file = 468 x 240
+	}
+	
+	; Mobiler
+	if (x = "Mobil Bottom Panorama")
+	{
+		format = MOB
+		file = 320 x 80
+	}
+	if (x = "Mobil Bottom Panorama XL")
+	{
+		format = MOB
+		file = 320 x 160
+	}
+	if (x = "Mobil Bottom Takeover")
+	{
+		format = MOB
+		file = 320 x 320
+	}
+	if (x = "Mobil Top Panorama")
+	{
+		format = MOB
+		file = 320 x 80
+	}
+	if (x = "Mobil Top Panorama XL")
+	{
+		format = MOB
+		file = 320 x 160
+	}
+	if (x = "Mobil Top Takeover")
+	{
+		format = MOB
+		file = 320 x 320
+	}
+	if (x = "Mobil Stor")
+	{
+		format = MOB
+		file = 320 x 320
+	}
+	if (x = "Mobil Mellan")
+	{
+		format = MOB
+		file = 320 x 160
+	}
+	if (x = "Mobil Liten")
+	{
+		format = MOB
+		file = 320 x 80
+	}
+
+	; Outsider
+	if (x = "Outsider 600")
+	{
+		format = OUT
+		file = 250 x 600
+	}
+	if (x = "Outsider 800")
+	{
+		format = OUT
+		file = 250 x 800
+	}
+	if (x = "Skyskrapa")
+	{
+		format = OUT
+		file = 250 x 600
+	}
+
+	; Panorama
+	if (x = "Panorama")
+	{
+		format = PAN
+		file = 980 x 240
+	}
+	if (x = "Panorama 1 120")
+	{
+		format = PAN
+		file = 980 x 120
+	}
+	if (x = "Panorama 1 240")
+	{
+		format = PAN	
+		file = 980 x 240
+	}
+	if (x = "Panorama 120")
+	{
+		format = PAN
+		file = 980 x 120
+	}
+	if (x = "Panorama 2 120")
+	{
+		format = PAN
+		file = 980 x 120
+	}
+	if (x = "Panorama 2 240")
+	{
+		format = PAN
+		file = 980 x 240
+	}
+
+	; Widescreen
+	if (x = "Widescreen 240")
+	{
+		format = WID
+		file = 250 x 240
+	}
+
+	; Portaler
+	if (x = "Kvadrat")
+	{
+		format = 180
+		file = 180 x 180
+	}
+	if (x = "Portal 180")
+	{
+		format = 180
+		file = 180 x 180
+	}
+	if (x = "Stortavla")
+	{
+		format = 380
+		file = 380 x 280
+	}
+	if (x = "Portal 580")
+	{
+		format = 580
+		file = 580 x 280
+	}
+	if (x = "Textannons")
+	{
+		format = TXT
+	}
+
+	; Reach
+	if (x = "Reach 250")
+	{
+		format = REACH250
+		file = 250 x 360
+	}
+	if (x = "Reach 468")
+	{
+		format = REACH468
+		file = 468 x 240
+	}
+
+	; Väder
+	if (x = "Väderspons")
+	{
+		format = VADER
+	}
+}
+
+cxProduct(format, type)
+{
+	global
+		;---- Riktade
 	RiktadMOD = 00000001609df500
 	RiktadOUT = 00000001609df509
 	RiktadPAN = 00000001609df502
@@ -1348,7 +572,7 @@ productGET:
 	RosOUT = 0000000160209517
 	RosPAN = 00000001601d3817
 	RosWID = 0000000160209515
-	Ros580 = 0000000160fc0369
+	Ros580 = 00000001610811d9
 	Ros380 = 0000000160ec7931
 	Ros180 = 0000000160da016b
 	RosTXT = 0000000160f4b805
@@ -1371,126 +595,407 @@ productGET:
 	;---- RETARGET
 	RetargetMob = 0000000160fb5848
 	RetargetPan = 0000000160fb4fd9
-
-
-	if (mlFormat = "MOD" and Type = "Run On Site")
-	{
+	
+	;---- CPC
+	CPC380 = 000000016107992d
+	CPC180 = 00000001610799f5
+	CPCTXT = 0000000161079a11
+	PluggCPC380 = 00000001610798f2
+	PluggCPC180 = 0000000161079a00
+	PluggCPCTXT = 0000000161079a17
+	
+	if (format = "MOD" && type = "Run On Site")
 		productID = %RosMOD%
-	} 
-	else if (mlFormat = "OUT" and Type = "Run On Site")
-	{
+	
+	if (format = "OUT" && type = "Run On Site")
 		productID = %RosOUT%
-	}
-	else if (mlFormat = "WID" and Type = "Run On Site")
-	{
+	
+	if (format = "WID" && type = "Run On Site")
 		productID = %RosWID%
-	}
-	else if (mlFormat = "PAN" and Type = "Run On Site")
-	{
+	
+	if (format = "PAN" && type = "Run On Site")
 		productID = %RosPAN%
-	} 
-	else if (mlFormat = "380" and Type = "Run On Site")
-	{
+
+	if (format = "380" && type = "Run On Site")
 		productID = %Ros380%
-	} 
-	else if (mlFormat = "180" and Type = "Run On Site")
-	{
+	
+	if (format = "180" && type = "Run On Site")
 		productID = %Ros180%
-	}
-	else if (mlFormat = "MOD" and Type = "Riktad")
-	{
+
+	if (format = "MOD" && type = "Riktad")
 		productID = %RiktadMOD%
-	} 
-	else if (mlFormat = "OUT" and Type = "Riktad")
-	{
+	
+	if (format = "OUT" && type = "Riktad")
 		productID = %RiktadOUT%
-	}
-	else if (mlFormat = "WID" and Type = "Riktad")
-	{
+
+	if (format = "WID" && type = "Riktad")
 		productID = %RiktadWID%
-	}
-	else if (mlFormat = "PAN" and Type = "Riktad")
-	{
+	
+	if (format = "PAN" && type = "Riktad")
 		productID = %RiktadPAN%
-	}
-	else if (mlFormat = "380" and Type = "Riktad")
-	{
+	
+	if (format = "380" && type = "Riktad")
 		productID = %Riktad380%
-	}
-	else if (mlFormat = "180" and Type = "Riktad")
-	{
+
+	if (format = "180" && type = "Riktad")
 		productID = %Riktad180%
-	}
-	else if (mlFormat = "MOD" and Type = "Plugg")
-	{
+	
+	if (format = "MOD" && type = "Plugg")
 		productID = %PluggMOD%
-	} 
-	else if (mlFormat = "OUT" and Type = "Plugg")
-	{
+
+	if (format = "OUT" && type = "Plugg")
 		productID = %PluggOUT%
-	}
-	else if (mlFormat = "WID" and Type = "Plugg")
-	{
+	
+	if (format = "WID" && type = "Plugg")
 		productID = %PluggWID%
-	}
-	else if (mlFormat = "PAN" and Type = "Plugg")
-	{
+
+	if (format = "PAN" && type = "Plugg")
 		productID = %PluggPAN%
-	}
-	else if (mlFormat = "380" and Type = "Plugg")
-	{
+
+	if (format = "380" && type = "Plugg")
 		productID = %Plugg380%
-	}
-	else if (mlFormat = "180" and Type = "Plugg")
-	{
-		productID = %Plugg180%
-	}
-	else if (mlFormat = "180" and Type = "Plugg")
-	{
-		productID = %Plugg180%
-	}
 
-	if (Type = "Reach")
-	{
+	if (format = "180" && type = "Plugg")
+		productID = %Plugg180%
+
+	if (format = "380" && type = "CPC")
+		productID = %CPC380%
+
+	if (format = "180" && type = "CPC")
+		productID = %CPC180%
+	
+	if (format = "380" && type = "CPC Plugg")
+		productID = %PluggCPC380%
+
+	if (format = "180" && type = "CPC Plugg")
+		productID = %PluggCPC180%
+
+
+	if (type = "Reach")
 		productID = %Reach%
-	}
 
-	if (mlInternetenhet = "TXT" and Type = "Run On Site")
-	{
+	if (format = "TXT" && type = "Run On Site")
 		productID = %RosTXT%
-	}
-	if (mlInternetenhet = "TXT" and Type = "Riktad")
-	{
-		productID = %RiktadTXT%
-	}
-	if (mlInternetenhet = "TXT" and Type = "Plugg")
-	{
-		productID = %PluggTXT%
-	}
-	if (mlFormat = "MOB" )
-	{
+
+	if (format = "TXT" && type = "CPC")
+		productID = %CPCTXT%
+
+	if (format = "TXT" && type = "CPC Plugg")
+		productID = %PluggCPCTXT%
+
+	if (format = "MOB" )
 		productID = %Mobil%
-	}
-	if (mlFormat = "MOB" and Type = "Retarget")
-	{
+
+	if (format = "MOB" && type = "Retarget")
 		productID = %RetargetMob%
-	}
-	if (mlFormat = "PAN" and Type = "Retarget")
-	{
+
+	if (format = "PAN" && type = "Retarget")
 		productID = %RetargetPan%
-	}
-	if (mlInternetenhet = "580")
-	{
+
+	if (format = "580")
 		productID = %Ros580%
-	}
-	else if (mlFormat = "WID" and mlTidning = "AF")
-	{
+
+	if (format = "WID" and mlTidning = "AF")
 		productID = %Ros380%
-	}
+	
+}
+
+forstaBokstav(x)
+{
+	StringLen, tecken, x
+	tecken := tecken - 1
+	StringTrimRight, forstaBokstav, x, %tecken%
+	return forstaBokstav
+}
+
+/*
+-----------------------------------------------------------
+	SUBRUTINER
+-----------------------------------------------------------
+*/
+
+getAnvnamn:
+	WinGetTitle, Windowtext, Atex MediaLink
+	StringSplit, WindowSplit, Windowtext, =
+	Anvandare =  %WindowSplit2%
+	StringTrimRight, AnvKort, Anvandare, 2 ; Sätter AnvKort till användarens förnamn
 
 return
 
-CPMcheck:
+getList: ; Hämtar information från valt objekt i listvyn
+	gosub, getAnvnamn
+	ControlGet, listCount, List, Count Selected, %control%, Atex MediaLink
+	ControlGet, getList, List, Selected, %control%, Atex MediaLink
+	StringSplit, getListRow, getList, `n
+	listRow = %getListRow1%
+	Stringsplit, kolumn, listRow, `t
+
+	;Läs kolumn-info från användarens kolumner.ini
+	IniRead, iniStart, %mlpDir%\kolumner.ini, kolumner, Start
+	IniRead, iniStopp, %mlpDir%\kolumner.ini, kolumner, Stopp
+	IniRead, iniExponeringar, %mlpDir%\kolumner.ini, kolumner, Exponeringar
+	IniRead, iniKundnr, %mlpDir%\kolumner.ini, kolumner, Kundnr
+	IniRead, iniKundnamn, %mlpDir%\kolumner.ini, kolumner, Kundnamn
+	IniRead, iniSaljare, %mlpDir%\kolumner.ini, kolumner, Saljare
+	IniRead, iniProdukt, %mlpDir%\kolumner.ini, kolumner, Produkt
+	IniRead, iniEnhet, %mlpDir%\kolumner.ini, kolumner, Internetenhet
+
+
+	mlStartdatum := kolumn%iniStart%
+	mlStoppdatum := kolumn%iniStopp%
+	mlExponeringar := kolumn%iniExponeringar%
+	mlKundnr := kolumn%iniKundnr%
+	mlKundnamn := kolumn%iniKundnamn%
+	mlSaljare := kolumn%iniSaljare%
+	mlProdukt := kolumn%iniProdukt%
+	
+	StringSplit, prodArray, mlProdukt , %A_Space%
+	mlTidning = %prodArray1%
+	mlSite = %prodArray2%
+
+	if (mlSite = "gotland.net")
+	{
+		mlTidning = GN
+	}
+
+	mlEnhet := kolumn%iniEnhet%
+	mlOrdernummer = %kolumn1%
+	
+return
+
+printCheck:
+	printCheck(mlOrdernummer) ; printFinns = 1 eller 0
+	if (printFinns = 1)
+	{
+		run, %sokVag%
+	}
+return
+
+kundOrder:
+	kundOrder = %mlKundnamn% (%mlOrdernummer%)
+	clipboard := kundOrder
+	ToolTip, Kopierat: %KundOrder%
+	SetTimer, RemoveToolTip, 1500
+return
+
+RemoveToolTip:
+	SetTimer, RemoveToolTip, Off
+	ToolTip
+return
+
+Kolumner: ; Redigerar ordningen på användarens kolumner och sparar den i kolumner.ini
+		kolumnLista =
+	(
+1: %kolumn1%
+2: %kolumn2%
+3: %kolumn3%
+4: %kolumn4%
+5: %kolumn5%
+6: %kolumn6%
+7: %kolumn7%
+8: %kolumn8%
+9: %kolumn9%
+10: %kolumn10%
+11: %kolumn11%
+12: %kolumn12%
+13: %kolumn13%
+14: %kolumn14%
+15: %kolumn15%
+16: %kolumn16%
+17: %kolumn17%
+18: %kolumn18%
+19: %kolumn19%
+20: %kolumn20%
+	)
+
+; öppnar dialogruta
+;Gui, Add, GroupBox, x2 y0 w230 h300 , Kolumner
+Gui, Add, Text, x12 y20 w210 h270 , %kolumnLista%
+Gui, Add, Text, x12 y310 w90 h20 , Startdatum:
+Gui, Add, Text, x12 y340 w90 h20 , Stoppdatum:
+Gui, Add, Text, x12 y370 w90 h20 , Exponeringar:
+Gui, Add, Text, x12 y400 w90 h20 , Kundnr:
+Gui, Add, Text, x12 y430 w90 h20 , Kundnamn:
+Gui, Add, Text, x12 y460 w90 h20 , Faktisk Säljare:
+Gui, Add, Text, x12 y490 w90 h20 , Produkt:
+Gui, Add, Text, x12 y520 w90 h20 , Internetenhet:
+Gui, Add, DropDownList, x132 y310 w100 h20 R20 vddStart, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, DropDownList, x132 y340 w100 h20 R20 vddStopp, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20 
+Gui, Add, DropDownList, x132 y370 w100 h20 R20 vddExp, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20 
+Gui, Add, DropDownList, x132 y400 w100 h20 R20 vddKnr, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20 
+Gui, Add, DropDownList, x132 y430 w100 h20 R20 vddKnamn, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, DropDownList, x132 y460 w100 h20 R20 vddSaljare, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, DropDownList, x132 y490 w100 h20 R20 vddProdukt, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, DropDownList, x132 y520 w100 h20 R20 vddInternetenhet, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, Button, x12 y550 w100 h30 gkolumnSubmit, Spara
+Gui, Add, Button, x132 y550 w100 h30 gAvbryt, Avbryt
+Gui, Color, FFFFFF
+Gui, +ToolWindow +Caption
+Gui, Show, x843 y311 h590 w244, Kolumn-konfigurering
+Return
+
+
+Avbryt:
+Gui, Destroy
+return
+
+kolumnSubmit: ; Sparar information från dialogruta skapad i sub Kolumner
+	Gui, Submit
+	Gui, Destroy
+	IniDelete, %mlpDir%\kolumner.ini, Kolumner
+	IniWrite, %ddStart%, %mlpDir%\kolumner.ini, Kolumner, Start
+	IniWrite, %ddStopp%, %mlpDir%\kolumner.ini, Kolumner, Stopp
+	IniWrite, %ddExp%, %mlpDir%\kolumner.ini, Kolumner, Exponeringar
+	IniWrite, %ddKnr%, %mlpDir%\kolumner.ini, Kolumner, Kundnr
+	IniWrite, %ddKnamn%, %mlpDir%\kolumner.ini, Kolumner, Kundnamn
+	IniWrite, %ddSaljare%, %mlpDir%\kolumner.ini, Kolumner, Saljare
+	IniWrite, %ddProdukt%, %mlpDir%\kolumner.ini, Kolumner, Produkt
+	IniWrite, %ddInternetenhet%, %mlpDir%\kolumner.ini, Kolumner, Internetenhet
+Return
+
+sokOrder:
+	StringTrimRight, OrderNummerUtanMnr, mlOrdernummer, 3 ; Tar bort tre sista tecken i ordernumret, dvs materialnummer inkl bindestreck
+	ControlSetText, Edit1, %OrderNummerUtanMnr%, Atex MediaLink ; Sätt ovanstående i sökfältet
+	ControlFocus, Edit1, Atex MediaLink	; Sätter fokus på sökfältet
+	Send, {Enter} ; Trycker enter för att starta sök.
+return
+
+saljarMail:
+	assign(AnvKort)
+	status("Undersöks")
+	subject = Fråga: ; Text att sätta i ämnesraden innan kundnamn (ordernummer)
+	mailTo(mlSaljare, subject, mlOrdernummer, mlKundnamn)
+Return
+
+korrMail:
+	assign(AnvKort)
+	status("Korrektur skickat")
+	gosub, cxGetAdId
+	subject = Korrektur: ; Text att sätta i ämnesraden innan kundnamn (ordernummer)
+	mailTo(mlSaljare, subject, mlOrdernummer, mlKundnamn)
+	text =
+	(
+
+
+----
+
+{CTRL down}f{CTRL up}Länk för rapport:{CTRL down}f{CTRL up}
+http://digital.ntm.eu/rapport/advertiser/%kundID%/campaign/%campaignID%/
+
+Spara denna länk{SHIFT down}1{SHIFT up}
+På denna länk finns information om hur denna order är inbokad. Kontrollera så att start/stoppdatum stämmer och att antal exponeringar är korrekt. Om vi inte får något svar startar denna annons på startdatumet. Denna länk fungerar även som statusrapport för denna kampanj. Här kan du se exakt hur många exponeringar/klick som levererats hittills i kampanjen. Om du någon gång under kampanjens gång upplever att något inte står rätt till, kontakta Traffic.
+
+----
+
+{CTRL down}{Home}{CTRL up}
+	)
+	Send, %text%
+Return
+
+startaAnnonsPS:
+	status("bearbetas") ; sätter status bearbetas
+	assign(AnvKort) ; tilldelar till användaren
+	getFormat(mlEnhet) ; Hämtar formatet utifrån internetenhet
+	stripDash(mlStartdatum) ; Tar bort - ur startdatum
+	rensaTecken(mlKundnamn) 
+	StringTrimLeft, mlStartdatum, mlStartdatum, 2 ; tar bort första två tecknen ur datumet
+	forstaBokstav := forstaBokstav(mlKundnamn)
+
+	adDir = G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%\%forstaBokstav%\%mlKundnamn%\%mlStartdatum%
+	if FileExist(adDir)
+	{
+		FileCopy, %templateDir%\%file%.psd, %adDir%\%format%-%mlKundnamn%-%mlStartdatum%.psd
+		run, %adDir%\%format%-%mlKundnamn%-%mlStartdatum%.psd
+	} else {
+		FileCreateDir, %adDir%
+		FileCopy, %templateDir%\%file%.psd, %adDir%\%format%-%mlKundnamn%-%mlStartdatum%.psd
+		run, %adDir%\%format%-%mlKundnamn%-%mlStartdatum%.psd
+	}
+return
+
+startaAnnonsFlash:
+	status("bearbetas") ; sätter status bearbetas
+	assign(AnvKort) ; tilldelar till användaren
+	getFormat(mlEnhet) ; Hämtar formatet utifrån internetenhet
+	stripDash(mlStartdatum) ; Tar bort - ur startdatum
+	rensaTecken(mlKundnamn) 
+	StringTrimLeft, mlStartdatum, mlStartdatum, 2 ; tar bort första två tecknen ur datumet
+	forstaBokstav := forstaBokstav(mlKundnamn)
+
+	adDir = G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%\%forstaBokstav%\%mlKundnamn%\%mlStartdatum%
+	if FileExist(adDir)
+	{
+		FileCopy, %templateDir%\%file%.fla, %adDir%\%format%-%mlKundnamn%-%mlStartdatum%.fla
+		run, %adDir%\%format%-%mlKundnamn%-%mlStartdatum%.fla
+	} else {
+		FileCreateDir, %adDir%
+		FileCopy, %templateDir%\%file%.fla, %adDir%\%format%-%mlKundnamn%-%mlStartdatum%.fla
+		run, %adDir%\%format%-%mlKundnamn%-%mlStartdatum%.fla
+	}
+return
+
+oppnaKundmapp:
+	getFormat(mlEnhet) ; Hämtar formatet utifrån internetenhet
+	stripDash(mlStartdatum) ; Tar bort - ur startdatum
+	rensaTecken(mlKundnamn) 
+	StringTrimLeft, mlStartdatum, mlStartdatum, 2 ; tar bort första två tecknen ur datumet
+	forstaBokstav := forstaBokstav(mlKundnamn)
+
+	adDir = G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%\%forstaBokstav%\%mlKundnamn%\
+	ifExist, %adDir%
+	{
+		run, G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%\%forstaBokstav%\%mlKundnamn%\
+	} else {
+		msgbox, Ingen mapp hittades på denna sökväg:`r`n%adDir%
+	}
+return
+
+kontrolleraPrint:
+StatusBarGetText, xAds, 3, Atex MediaLink
+StringSplit, xAds, xAds, %A_Space%
+xAds = %xAds1%
+msgbox, Vill du gå igenom %xAds% annonser?
+adCount = 0
+printAds = 0
+while (adCount < xAds)
+{
+	adCount++
+	Sleep, 50
+	Send, ^c
+	Sleep, 50
+	printCheck(Clipboard) ; printFinns = 1 eller 0
+		if (printFinns = 1)
+		{
+			printAds++
+			status("Vilande")
+		}
+	Sleep, 100
+	Send, {Down}
+}
+msgbox, Klar!`n%printAds% annonser av %xAds% hade printmaterial tillgängligt.
+return
+
+updateCheck:
+IniRead, mainVersion, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\master.ini, Version, Version
+if (version < mainVersion){
+	MsgBox, 68, Ny version!, Det finns en ny version av Medialink Plus. Vill du hämta den?
+	IfMsgBox, Yes
+		Run, G:\NTM\NTM Digital Produktion\MedialinkPlus
+}
+return
+/*
+-----------------------------------------------------------
+	CX-Bokning
+-----------------------------------------------------------
+*/
+cxBokning:
+	Send, ^c
+	bokning = 1
+	gosub, cxKundCheck ; returnerar kundID
+	gosub, cxKampanjbokning ; Boknings-GUI och inbokning av kampanj
+return
+
+cxCPM:
 if (Type = "Plugg")
 {
 	CPM = 50.00
@@ -1509,262 +1014,611 @@ else if (Type = "Reach")
 }
 return
 
+cxSplash:
+	SplashImage, G:\NTM\NTM Digital Produktion\övrigt\MedialinkPlus\dev\cx_loading.jpg, B
+	Sleep, 150
+	WinWaitClose, C:\Windows\system32\cmd.exe
+	SplashImage, Off
+return
 
-SiteTargeting:
-	FileDelete, %userFolder%bat.bat
-	FileDelete, %userFolder%xml.xml
-	FileDelete, %userFolder%xmlOut.xml
-	FileDelete, %userFolder%create.xml
-
-	xmlToRun = 
-(
-<?xml version="1.0" encoding="utf-8"?>
-<cx:cpmContract xmlns:cx="http://cxense.com/cxad/api/cxad">
-<cx:startDate>%mlStartdatum%T00:00:00.000+02:00</cx:startDate>
-<cx:endDate>%mlStoppdatum%T23:59:59.000+02:00</cx:endDate>
-<cx:priority>0.50</cx:priority>
-<cx:requiredImpressions>%mlExponeringar%</cx:requiredImpressions>
-<cx:costPerThousand class="currency" currencyCode="SEK" value="%CPM%"/>
-</cx:cpmContract>
-)
-	return
-
-Avbryt:
-	Gui, Destroy
-	return
-
-TheEND:
-	return
-
-
-versionTimer:
-IniRead, masterVersion, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\master.ini, Version, Version, 0
-	versionCheck := masterVersion - ownVersion
-	if (versionCheck > 0 and UpdateTip = 0)
-	{
-		UpdateTip = 1
-		TrayTip, Ny version finns!, Det finns en ny version av MedialinkPlus tillgänglig!
-	}
-	return
-
-^!#N::
-	Run, C:\Program Files (x86)\Microsoft Office\Office14\OUTLOOK.EXE /c IPM.Note
-	return
-
-
-Rapport:
-FileCreateDir, %A_AppData%\AHK
-userFolder = %A_AppData%\AHK\
-
-
-Gosub, getFromList			; mlStartdatum, mlStoppdatum, mlKundnr, mlExponeringar, mlKundnamn
-StringReplace, mlKundnamn, mlKundnamn,:,,All
-StringReplace, mlKundnamn, mlKundnamn,\,,All
-StringReplace, mlKundnamn, mlKundnamn,/,,All
-StringReplace, mlKundnamn, mlKundnamn,&&,,All
-StringReplace, mlKundnamn, mlKundnamn,&,,All
-Gosub, getOrdernr			; mlOrdernr
-Gosub, getTidning			; mlTidning
-Gosub, getFormat			; mlFormat
-
-
-FileDelete, %userFolder%bat.bat
-FileDelete, %userFolder%xmlOut.xml
-sleep, 100
-batToRun = 
-(
-G:
-cd G:\NTM\NTM Digital Produktion\cURL\bin
-curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/folder/advertising > %userFolder%xmlOut.xml
-)
-FileAppend, %batToRun%, %userFolder%bat.bat
-Run, %userFolder%bat.bat,,Min
-SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
-Sleep, 150
-WinWaitClose, C:\Windows\system32\cmd.exe
-SplashImage, Off
-
-checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
-
-	FileRead, xmlOut, %userFolder%xmlOut.xml
-	StringReplace, xmlOut, xmlOut, <cx:childFolder>, +, A
+cxKundCheck:
+	kundCheck = -%A_Space%%mlKundnr%%A_Space%-
+	xmlSection = 
 	xmlPart = 0
-	Loop, Parse, xmlOut, +
+
+	FileDelete, %cxDir%\kundCheck.bat
+	FileDelete, %cxDirr%\kundCheck.xml
+	Sleep, 100
+	bat = 
+	(
+	G:
+	cd G:\NTM\NTM Digital Produktion\cURL\bin
+	curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/folder/advertising > %cxDir%\kundCheck.xml
+	)
+	FileAppend, %bat%, %cxDir%\kundCheck.bat
+	Run, %cxDir%\kundCheck.bat,,Min
+	Gosub, cxSplash
+
+	FileRead, kundXML, %cxDir%\kundCheck.xml
+	StringReplace, kundXML, kundXML, <cx:childFolder>, +, A
+
+	; Loopa igenom XML-filen för att se om kund finns
+	Loop, Parse, kundXML, +
 	{
-		xmlIndex++
-		if InStr(A_LoopField, checkKundNR)
+		if InStr(A_LoopField, kundCheck)
 		{
 			xmlPart = %A_LoopField%
 			break
 		}
 	}
-	if (xmlPart != 0)
+	if (xmlPart != 0) ; Kund hittad
 	{
 		StringSplit, xmlSplit, xmlPart, >
 		StringSplit, xmlSplit, xmlSplit4, <
-		xmlID = %xmlSplit1% ; xmlID innehåller kundens ID
+		kundID = %xmlSplit1% ; kundID innehåller kundens ID
 	}
-	if (xmlPart = 0) ; Kund kunde inte hittas
+	
+	if (xmlPart = 0 && bokning = 0) ; Kund inte hittad, ingen inbokning
 	{
-		msgbox, Kunde inte hitta kund, ingen länk infogas.
-		Return
+		MsgBox, Kunde inte hitta kund, avbryter.
+		order = 0
+		return
 	}
-
-FileDelete, %userFolder%bat.bat
-FileDelete, %userFolder%xmlOut.xml
-sleep, 100
-batToRun = 
-(
-G:
-cd G:\NTM\NTM Digital Produktion\cURL\bin
-curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/campaigns/%xmlID% > %userFolder%xmlOut.xml
-)
-FileAppend, %batToRun%, %userFolder%bat.bat
-Run, %userFolder%bat.bat,,Min
-SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
-Sleep, 150
-WinWaitClose, C:\Windows\system32\cmd.exe
-SplashImage, Off
-
-checkOrdernr = -%A_Space%%mlOrdernr%
-
-	FileRead, xmlOut, %userFolder%xmlOut.xml
-	StringReplace, xmlOut, xmlOut, <cx:campaign>, +, A
-	xmlPart = 0
-	Loop, Parse, xmlOut, +
+	if (xmlPart = 0) ; Kund inte hittad
 	{
-		xmlIndex++
-		if InStr(A_LoopField, checkOrdernr)
+		goto, cxKundSaknas
+		return
+	}
+	
+return
+
+cxKundSaknas:
+	MsgBox, 4, Kund saknas, Kund fanns inte. Skapa kund "%mlTidning% - %mlKundnr% - %mlKundnamn%"?
+	IfMsgBox, Yes 
+	{
+		FileDelete, %cxDir%\kundCreate.bat
+		FileDelete, %cxDir%\kundCreate.xml
+		FileDelete, %cxDir%\kundCreateResponse.xml
+		StringReplace, mlKundnamn, mlKundnamn,&,,A
+
+		xml =
+		(
+			<?xml version="1.0" encoding="UTF-8"?>
+			<cx:folder xmlns:cx="http://cxense.com/cxad/api/cxad">
+			  <cx:name>%mlTidning% - %mlKundnr% - %mlKundnamn%</cx:name>
+			</cx:folder>
+		)
+		FileEncoding, UTF-8-RAW
+		FileAppend, %xml%, %cxDir%\kundCreate.xml
+		FileEncoding
+		
+		bat =
+		(
+			G:
+			cd G:\NTM\NTM Digital Produktion\cURL\bin
+			curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/folder/advertising -d @%cxDir%\kundCreate.xml > %cxDir%\kundCreateResponse.xml
+		)
+		FileAppend, %bat%, %cxDir%\kundCreate.bat
+
+		Run, %cxDir%\kundCreate.bat,,Min
+		Gosub, cxSplash
+
+		MsgBox,1, Kund inlagd, Kund inlagd. Boka kampanj?
+		ifMsgBox, Cancel
 		{
-			xmlPart = %A_LoopField%
-			break
+			goto, cxDie
+		}
+		ifMsgBox, OK
+		{
+			FileRead, xmlResponse, %cxDir%\kundCreateResponse.xml
+			StringSplit, xmlSplit, xmlResponse, >
+			StringSplit, xmlSplit, xmlSplit6, <
+			kundID = %xmlSplit1% ; kundID innehåller kundens ID
+			Goto, cxKampanjbokning
+		}
+		return
+	}
+	IfMsgBox, No
+		goto, cxDie
+return
+
+cxKampanjbokning:
+	getFormat(mlEnhet)
+	advertisingFolder = %mlTidning% - %mlKundnr% - %mlKundnamn%
+	campaign = %mlTidning% - %format%%mlInternetenhet% - %mlOrdernummer%
+
+	; Sätter rätt format på start och stoppdatum samt varnar om startdatum passerat
+	StringReplace, mlStartdatumStrip, mlStartdatum, - ,, All
+	StringReplace, mlStoppdatumStrip, mlStoppdatum, - ,, All
+	StringTrimLeft, mlStartdatumStripYY, mlStartdatumStrip, 2
+	FormatTime, idag, , yyyyMMdd
+	checkDate := mlStartdatumStrip - idag
+	if (checkDate < 0)
+	{
+		MsgBox,48,Fel i startdatum, Startdatumet på kampanjen har redan passerat. `r`nDagens datum har satts som startdatum istället.
+		mlStartdatumStrip = %idag%
+	}
+	if (skin)
+	{
+		if (skin != "ERROR")
+		{
+		Gui, 1:Add, Picture, x0 y0 w450 h250 , %mlpDir%\skin\%skin%
 		}
 	}
-	if (xmlPart != 0)
+
+	Gui, 1: Add, GroupBox, x12 y10 w420 h180 , Bokningsöversikt
+	Gui, 1: Add, Text, x22 y40 w80 h20 , Typ:
+	Gui, 1: Add, DropDownList, x142 y40 w120 h20 vType gType R7, Run On Site||Riktad|Plugg|Reach|Retarget|CPC|CPC Plugg
+	Gui, 1: Add, Text, x22 y70 w100 h20 , Advertising Folder:
+	Gui, 1: Add, Edit, x142 y70 w280 h20 vadvertisingFolder, %advertisingFolder%
+	Gui, 1: Add, Text, x22 y100 w100 h20 , Campaign:
+	Gui, 1: Add, Edit, x142 y100 w280 h20 vcampaign, %campaign%
+	Gui, 1: Add, Text, x22 y130 w110 h20 , Start- och stoppdatum:
+	Gui, 1: Add, DateTime, x142 y130 w120 h20 vmlStartdatum Choose%mlStartdatumStrip%00, yyyy-MM-dd  HH:mm
+	Gui, 1: Add, Text, x282 y130 w10 h20 , -
+	Gui, 1: Add, DateTime, x302 y130 w120 h20 vmlStoppdatum Choose%mlStoppdatumStrip%2359, yyyy-MM-dd  HH:mm
+	Gui, 1: Add, Text, x22 y160 w100 h20 , Exponeringar:
+	Gui, 1: Add, Edit, x142 y160 w280 h20 vmlExponeringar, %mlExponeringar%
+	Gui, 1: Add, Button, x332 y200 w100 h30 gcxAvbryt, Avbryt
+	Gui, 1: Add, Button, x222 y200 w100 h30 gcxBokaKampanj, OK
+	Gui, 1: Color, FFFFFF
+	Gui, 1: +ToolWindow +Caption
+	Gui, 1: Show, x726 y420 h250 w450, Bokningsöversikt
+return
+
+cxAvbryt:
+	Gui, 1:Destroy
+return
+
+1GuiClose:
+	Gui, 1:Destroy
+return
+
+
+Type:
+	Gui, 1:Submit, NoHide
+	if (Type = "Retarget" || Type = "CPC" || Type = "CPC Plugg")
 	{
-		StringSplit, xmlSplit, xmlPart, >
-		StringSplit, xmlSplit, xmlSplit4, <
-		orderID = %xmlSplit1% ; orderID innehåller kampanjens ID
+		GuiControl, Disable, mlExponeringar
+	} else {
+		GuiControl, Enable, mlExponeringar
 	}
-	if (xmlPart = 0) ; Kund kunde inte hittas
+	
+	
+	
+return
+
+cxBokaKampanj:
+	Gui, 1:Submit
+	Gui, 1:Destroy
+	cxProduct(format, Type) ; Returnerar productID
+	FormatTime, mlStartdatum, %mlStartdatum%, yyyy-MM-dd HH:mm
+	FormatTime, mlStoppdatum, %mlStoppdatum%, yyyy-MM-dd HH:mm
+	
+	StringSplit, mlStartdatum, mlStartdatum, %A_Space%
+	startDatum = %mlStartdatum1%
+	startTid = %mlStartdatum2%
+	
+	StringSplit, mlStoppdatum, mlStoppdatum, %A_Space%
+	stoppDatum = %mlStoppdatum1%
+	stoppTid = %mlStoppdatum2%
+	
+	FileDelete, %cxDir%\campaignCreate.xml
+	FileDelete, %cxDir%\campaignResponse.xml
+	FileDelete, %cxDir%\campaignCreate.bat
+	
+	if (Type = "Plugg")
+		campaign = %mlTidning% - %format% - PLUGG - %mlOrdernummer%
+	if (Type = "Reach")
+		campaign = %mlTidning% - %format% - REACH - %mlOrdernummer%
+	
+	xml =
+	(
+	<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+	<cx:campaign xmlns:cx="http://cxense.com/cxad/api/cxad" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+		<cx:name>%campaign%</cx:name>
+		<cx:productId>%productID%</cx:productId>
+		<cx:perUserCap>
+		<cx:max>0</cx:max>
+		<cx:period>DAILY</cx:period>
+		</cx:perUserCap>
+	</cx:campaign>
+	)
+	FileEncoding, UTF-8-RAW
+	FileAppend, %xml%, %cxDir%\campaignCreate.xml
+	FileEncoding
+	
+	bat = 
+	(
+	G:
+	cd G:\NTM\NTM Digital Produktion\cURL\bin
+	curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/campaign/%kundID% -d @%cxDir%\campaignCreate.xml > %cxDir%\campaignResponse.xml
+	)
+	FileAppend, %bat%, %cxDir%\campaignCreate.bat
+	Run, %cxDir%\campaignCreate.bat,,Min
+	Gosub, cxSplash
+	Gosub, cxBokaKontrakt
+	
+return
+
+cxBokaKontrakt:
+	FileDelete, %cxDir%\contract.xml
+	FileDelete, %cxDir%\contract.bat
+	FileRead, xmlOut, %cxDir%\campaignResponse.xml
+	StringSplit, xmlCampSplit, xmlOut, >
+	StringSplit, xmlCampSplit, xmlCampSplit6, <
+	kampanjID = %xmlCampSplit1% ; kampanjID innehåller kampanjens ID
+	
+	Gosub, cxCPM
+	
+	xml =
+	(
+	<?xml version="1.0" encoding="utf-8"?>
+	<cx:cpmContract xmlns:cx="http://cxense.com/cxad/api/cxad">
+	<cx:startDate>%startDatum%T%startTid%:00.000+01:00</cx:startDate>
+	<cx:endDate>%stoppDatum%T%stoppTid%:59.999+01:00</cx:endDate>
+	<cx:priority>0.50</cx:priority>
+	<cx:requiredImpressions>%mlExponeringar%</cx:requiredImpressions>
+	<cx:costPerThousand class="currency" currencyCode="SEK" value="%CPM%"/>
+	</cx:cpmContract>
+	)
+	
+	if (Type = "CPC" or Type = "Retarget" or Type = "CPC Plugg") ; Om det är en CPC-produkt
 	{
-		msgbox, Kunde inte hitta ordernummer, avbryter
-		Return
+	xml =
+	(
+	<?xml version="1.0"?>
+	<cx:cpcContract xmlns:cx="http://cxense.com/cxad/api/cxad">
+	<cx:startDate>%startDatum%T%startTid%:00.000+01:00</cx:startDate>
+	<cx:endDate>%stoppDatum%T%stoppTid%:59.000+02:00</cx:endDate>
+	<cx:priority>0.50</cx:priority>
+	</cx:cpcContract>
+	)
 	}
-	MsgBox,4,Rapport hittad, Rapport hittad`, öppna i webbläsaren?
+	FileEncoding, UTF-8-RAW
+	FileAppend, %xml%, %cxDir%\contract.xml
+	FileEncoding
+	
+	bat =
+	(
+	G:
+	cd G:\NTM\NTM Digital Produktion\cURL\bin
+	curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/contract/%kampanjID% -d @%cxDir%\contract.xml > %cxDir%\contractResponse.xml
+	)
+	FileAppend, %bat%, %cxDir%\contract.bat
+	Run, %cxDir%\contract.bat,,Min
+	Goto, cxBokaAdvertisement
+return
+
+cxBokaAdvertisement:
+	FileDelete, %cxDir%\advertisement.xml
+	FileDelete, %cxDir%\advertisement.bat
+	StringReplace, mlKundnamn, mlKundnamn,&,,A
+	xml =
+	(
+	<?xml version="1.0" encoding="UTF-8"?>
+	<cx:ad xmlns:cx="http://cxense.com/cxad/api/cxad">
+	<cx:name>%mlKundnamn% - %mlStartdatumStripYY%</cx:name>
+	</cx:ad>
+	)
+	FileEncoding, UTF-8-RAW
+	FileAppend, %xml%, %cxDir%\advertisement.xml
+	FileEncoding
+	bat =
+	(
+	G:
+	cd G:\NTM\NTM Digital Produktion\cURL\bin
+	curl -s -H "Content-type: text/xml" -u %cxUser% -X POST https://cxad.cxense.com/api/secure/ad/%kampanjID% -d @%cxDir%\advertisement.xml
+	)
+	FileAppend, %bat%, %cxDir%\advertisement.bat
+	run, %cxDir%\advertisement.bat,,Min
+	Gosub, cxSplash
+	MsgBox,4, Bokning klar, Inbokning klar, öppna i webbläsaren?
 		IfMsgBox, Yes
-			run, http://digital.ntm.eu/rapport/advertiser/%xmlID%/campaign/%orderID%/
+			run, https://cxad.cxense.com/adv/campaign/%kampanjID%/overview
 		IfMsgBox, No
 			return
-
 return
 
+cxDie:
+return
 
-RapportURL:
-FileCreateDir, %A_AppData%\AHK
-userFolder = %A_AppData%\AHK\
-
-
-Gosub, getFromList			; mlStartdatum, mlStoppdatum, mlKundnr, mlExponeringar, mlKundnamn
-StringReplace, mlKundnamn, mlKundnamn,:,,All
-StringReplace, mlKundnamn, mlKundnamn,\,,All
-StringReplace, mlKundnamn, mlKundnamn,/,,All
-StringReplace, mlKundnamn, mlKundnamn,&&,,All
-StringReplace, mlKundnamn, mlKundnamn,&,,All
-Gosub, getOrdernr			; mlOrdernr
-Gosub, getTidning			; mlTidning
-Gosub, getFormat			; mlFormat
-
-
-FileDelete, %userFolder%bat.bat
-FileDelete, %userFolder%xmlOut.xml
-sleep, 100
-batToRun = 
-(
-G:
-cd G:\NTM\NTM Digital Produktion\cURL\bin
-curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/folder/advertising > %userFolder%xmlOut.xml
-)
-FileAppend, %batToRun%, %userFolder%bat.bat
-Run, %userFolder%bat.bat,,Min
-SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
-Sleep, 150
-WinWaitClose, C:\Windows\system32\cmd.exe
-SplashImage, Off
-
-checkKundNR = -%A_Space%%mlKundnr%%A_Space%-
-
-	FileRead, xmlOut, %userFolder%xmlOut.xml
-	StringReplace, xmlOut, xmlOut, <cx:childFolder>, +, A
-	xmlPart = 0
-	Loop, Parse, xmlOut, +
+cxGetAdId:
+	gosub, cxKundCheck ; returnerar kundID
+	if (order = 1) ; bara om föregående returnerar ett kundID
 	{
-		xmlIndex++
-		if InStr(A_LoopField, checkKundNR)
+		FileDelete, %cxDir%\listakampanjer.xml
+		FileDelete, %cxDir%\listakampanjer.bat
+		bat =
+		(
+		G:
+		cd G:\NTM\NTM Digital Produktion\cURL\bin
+		curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/campaigns/%kundID% > %cxDir%\listakampanjer.xml
+		)
+		FileAppend, %bat%, %cxDir%\listakampanjer.bat
+		Run, %cxDir%\listakampanjer.bat,,Min
+		gosub, cxSplash
+		
+		orderCheck = -%A_Space%%mlOrdernummer%
+		FileRead, listaKampanjer, %cxDir%\listakampanjer.xml
+		StringReplace, listaKampanjer, listaKampanjer, <cx:campaign>, +, A
+		xmlPart = 0
+		Loop, Parse, listaKampanjer, +
 		{
-			xmlPart = %A_LoopField%
+			xmlIndex++
+			if InStr(A_LoopField, orderCheck)
+			{
+				xmlPart = %A_LoopField%
+				break
+			}
+		}
+		if (xmlPart != 0)
+		{
+			StringSplit, xmlSplit, xmlPart, >
+			StringSplit, xmlSplit, xmlSplit4, <
+			campaignID = %xmlSplit1% ; campaignID innehåller kampanjens ID
+		}
+		if (xmlPart = 0) ; kampanj kunde inte hittas
+		{
+			msgbox, Kunde inte hitta ordernummer.
+			order = 0
+			Return
+		}
+	}
+return
+
+Rapport:
+	order = 1
+	bokning = 0
+	gosub, cxGetAdId
+	if order = 1
+		run, http://digital.ntm.eu/rapport/advertiser/%kundID%/campaign/%campaignID%/
+Return
+
+oppnaCxense:
+	order = 1
+	bokning = 0
+	gosub, cxGetAdId
+	if order = 1
+		run, https://cxad.cxense.com/adv/campaign/%campaignID%/overview
+Return
+
+
+raknaExponeringar:
+	;~ gosub, getList
+	totExp = 0
+	count = 0
+	Loop, Parse, getList, `n 
+	{
+		StringSplit, kolumn, A_LoopField, `t
+		totExp := totExp + kolumn%iniExponeringar%
+		count++
+		if(count = listCount)
+		{
 			break
 		}
 	}
-	if (xmlPart != 0)
-	{
-		StringSplit, xmlSplit, xmlPart, >
-		StringSplit, xmlSplit, xmlSplit4, <
-		xmlID = %xmlSplit1% ; xmlID innehåller kundens ID
-	}
-	if (xmlPart = 0) ; Kund kunde inte hittas
-	{
-		msgbox, Kunde inte hitta kund, ingen länk infogas.
-		Return
-	}
+	msgbox, Totalt antal begärda exponeringar: %totExp%
+return
 
-FileDelete, %userFolder%bat.bat
-FileDelete, %userFolder%xmlOut.xml
-sleep, 100
-batToRun = 
-(
-G:
-cd G:\NTM\NTM Digital Produktion\cURL\bin
-curl -s -H "Content-type: text/xml" -u %cxUser% -X GET https://cxad.cxense.com/api/secure/campaigns/%xmlID% > %userFolder%xmlOut.xml
-)
-FileAppend, %batToRun%, %userFolder%bat.bat
-Run, %userFolder%bat.bat,,Min
-SplashImage, G:\NTM\NTM Digital Produktion\Övrigt\MedialinkPlus\dev\cx_loading.jpg, B
-Sleep, 150
-WinWaitClose, C:\Windows\system32\cmd.exe
-SplashImage, Off
+raknaValda:
+	;~ gosub, getList
+	MsgBox, %listCount% annonser markerade.
+return
 
-checkOrdernr = -%A_Space%%mlOrdernr%
+rapporteraFel:
+	assign(AnvKort)
+	status("Undersöks")
+	Gui, Add, Text, x12 y10 w180 h20 , Ange vilka fel som finns på ordern:
+	Gui, Add, CheckBox, x12 y40 w180 h30 vGUIsen , Sent bokad
+	Gui, Add, CheckBox, x12 y70 w180 h30 vGUImanus, Manus saknas/ej komplett
+	Gui, Add, CheckBox, x12 y100 w180 h30 vGUImaterial, Material saknas
+	Gui, Add, Button, x52 y130 w90 h30 grapporteraFelOK , OK
+	Gui, Color, FFFFFF
+	Gui, +ToolWindow +Caption
+	Gui, Show, xCenter yCenter h166 w208, Felrapport
+return
 
-	FileRead, xmlOut, %userFolder%xmlOut.xml
-	StringReplace, xmlOut, xmlOut, <cx:campaign>, +, A
-	xmlPart = 0
-	Loop, Parse, xmlOut, +
+rapporteraFelOK:
+	Gui, Submit
+	Gui, Destroy
+	v1 = 
+	v2 = 
+	v3 = 
+	if GUIsen = 1
+		v1 = Sent bokad (material och manus ska finnas 2 arbetsdagar innan startdatum). Om inte ordern bokas fram finns risk att den inte blir producerad.`n
+	if GUImanus = 1
+		v2 = Manus saknas/är inkomplett i interna noteringar. Interna noteringar ska alltid innehålla manus.`n
+	if GUImaterial = 1
+		v3 = Material saknas eller har ett startdatum senare än webbannonsens. Material ska vara skickat till digital.material@ntm.eu 2 arbetsdagar innan annonsstart.`n
+	mailTo(mlSaljare, "Ej komplett/korrekt order", mlOrdernummer, mlKundnamn)
+	Send, Ordern, {Ctrl down}f{Ctrl up}%mlKundnamn% (%mlOrdernummer%){Ctrl down}f{Ctrl up}, är inte komplett/korrekt och kan inte produceras till det datum den är bokad.`nVar vänlig se över bokningen.`n`n{Ctrl down}f{Ctrl up}Upptäckt problem:{Ctrl down}f{Ctrl up}`n%Sentbokad%%Manus%%Material%
+
+	Send, %v1%
+	Send, %v2%
+	Send, %v3%
+return
+
+lager:
+	Loop, Parse, getList, `n
 	{
-		xmlIndex++
-		if InStr(A_LoopField, checkOrdernr)
+		StringSplit, kolumn, A_LoopField, %A_Tab%
+		produkt := kolumn%iniProdukt%
+		StringSplit, prodArray, produkt , %A_Space%
+		Tidning = %prodArray1%
+		getFormat(kolumn%iniEnhet%) ; sätter format
+		Ordernr = %kolumn1%
+		Start := kolumn%iniStart%
+		Stopp := kolumn%iniStopp%
+		Kundnamn := kolumn%iniKundnamn%
+		StringReplace, Kundnamn, Kundnamn, & , &amp;, All
+		Exponeringar := kolumn%iniExponeringar%
+		
+		if (Tidning = "NT")
 		{
-			xmlPart = %A_LoopField%
-			break
+			Tidning = NTFB
 		}
+		
+		addToXML =
+		(
+		<kampanj>
+			<tidning>%Tidning%</tidning>
+			<format>%format%</format>
+			<ordernr>%Ordernr%</ordernr>
+			<kund>%Kundnamn%</kund>
+			<start>%Start%</start>
+			<stopp>%Stopp%</stopp>
+			<exponeringar>%Exponeringar%</exponeringar>
+		</kampanj>
+		)
+		
+		XML = %XML%%addToXML%
 	}
-	if (xmlPart != 0)
-	{
-		StringSplit, xmlSplit, xmlPart, >
-		StringSplit, xmlSplit, xmlSplit4, <
-		orderID = %xmlSplit1% ; orderID innehåller kampanjens ID
-	}
-	if (xmlPart = 0) ; Kund kunde inte hittas
-	{
-		msgbox, Kunde inte hitta ordernummer, ingen länk infogas.
-		Return
-	}
-	RapportURL = 
+	fullXML =
 	(
-{CTRL down}f{CTRL up}Länk för rapport:{CTRL down}f{CTRL up}
-http://digital.ntm.eu/rapport/advertiser/%xmlID%/campaign/%orderID%/
-
-Spara denna länk{SHIFT down}1{SHIFT up}
-På denna länk finns information om hur denna order är inbokad. Kontrollera så att start/stoppdatum stämmer och att antal exponeringar är korrekt. Denna länk fungerar även som statusrapport för denna kampanj. Här kan du se exakt hur många exponeringar/klick som levererats hittills i kampanjen. Om du någon gång under kampanjens gång upplever att något inte står rätt till, kontakta Traffic.{CTRL down}{Home}{CTRL up}
+	<lager>
+	<timestamp>%A_Now%</timestamp>
+	%XML%
+	</lager>		
 	)
+	
+	FileDelete, %lagerDir%\lager.xml
+	FileAppend, %fullXML%, %lagerDir%\lager.xml
+	Msgbox, XML-fil genererad
 return
+;--------------
+;	Statusar
+;--------------
+
+statusKlar:
+	status("klar")
+return
+
+statusNy:
+	status("ny")
+return
+
+statusBearbetas:
+	status("bearbetas")
+return
+
+statusVilande:
+	status("vilande")
+return
+
+statusManusMail:
+	status("vilande")
+	assign("Manus på Mail")
+return
+
+statusKorrSkickat:
+	status("korrektur skickat")
+return
+
+statusKorrekturKlart:
+	status("korrektur klart")
+return
+
+statusUndersoks:
+	status("undersöks")
+return
+
+statusRep:
+	status("repetition")
+return
+
+statusLevFardig:
+	status("Lev. färdig")
+return
+
+statusPreflight:
+	status("preflight")
+return
+
+statusArkiverad:
+	status("Arkiverad")
+return
+
+statusTilldelaBearbetas:
+	status("bearbetas")
+	assign(AnvKort)
+return
+
+statusBokad:
+	status("Bokad")
+return
+
+; Kopiera kampanjer
+copyCampaigns:
+	i = 1
+	copyList =
+	;~ gosub, getList
+	loop, parse, getList
+	{
+		if (i > listCount)
+		{	
+			break
+		}
+		thisRow := getListRow%i%
+		copyList = %copyList%`n%thisRow%
+		i++
+	}
+	clipboard = %copyList%
+	
+return
+
+;--------------
+;	Tilldela
+;--------------
+
+tilldelaMig:
+	assign(AnvKort)
+return
+
+tilldelaAnnan:
+	Send, !a
+return
+
+tilldelaIngen:
+	assign(" ")
+return
+
+; INSTÄLLNINGAR
+settings:
+if (NoteWin = 1)
+{
+	noteCheck = Checked
+} else {
+	noteCheck =
+}
+
+if (skin = "ERROR")
+{
+	skin = 
+}
+Gui, 5:Add, CheckBox, x12 y10 w180 h30 vnoteWinCheck %noteCheck%, Stort noteringsfönster + cxMini
+Gui, 5:Add, Edit, x12 y70 w180 h30 vskin r1, %skin%
+Gui, 5:Add, Text, x12 y50 w180 h20, cx-skin: ( filnamn.jpg - tom om inget)
+Gui, 5:Add, Button, x52 y120 w100 h30 gsettingsSave, Spara
+Gui, 5: +ToolWindow +Caption
+Gui, 5:Color, FFFFFF
+Gui, 5:Show, w207 h168, Inställningar
+return
+
+5GuiClose:
+Gui, 5:destroy
+return
+
+GuiClose:
+Gui, destroy
+return
+
+settingsSave:
+Gui, 5:Submit
+IniWrite, %skin%, %mlpDir%\settings.ini, Settings, Skin
+IniWrite, %noteWinCheck%, %mlpDir%\settings.ini, Settings, NoteWin
+reload
+return
+
+
+#include cxmini.ahk
