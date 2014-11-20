@@ -6,7 +6,7 @@ DetectHiddenText, On
 	UPPSTART & INITIALISERING
 -----------------------------------------------------------
 */
-version = 2.1
+version = 2.003
 menuOn = 0
 lmenuOn = 0
 toolbar = 0
@@ -44,7 +44,7 @@ IniWrite, %version%, %mlpSettings%, Version, Version
 IniRead, mainVersion, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\master.ini, Version, Version
 
 ; SPLASH
-SplashImage, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\mlp2_1.jpg, B
+SplashImage, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\mlp2.jpg, B
 Sleep 3000
 SplashImage, Off
 
@@ -1110,7 +1110,8 @@ cxKundSaknas:
 		}
 		ifMsgBox, OK
 		{
-			StringSplit, xmlSplit, DATA, >
+			FileRead, xmlResponse, %cxDir%\kundCreateResponse.xml
+			StringSplit, xmlSplit, xmlResponse, >
 			StringSplit, xmlSplit, xmlSplit6, <
 			kundID = %xmlSplit1% ; kundID innehåller kundens ID
 			Goto, cxKampanjbokning

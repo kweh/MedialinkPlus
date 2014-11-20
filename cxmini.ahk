@@ -43,7 +43,6 @@ FileEncoding, UTF-8-RAW
 FileAppend, %bat%, %cxDir%getAds.bat
 FileEncoding
 Run, %cxDir%getAds.bat,,Min
-gosub, cxSplash
 
 
 Sleep, 100
@@ -152,7 +151,6 @@ FileEncoding, UTF-8-RAW
 FileAppend, %bat%, %cxDir%getCampaigns.bat
 FileEncoding
 Run, %cxDir%getCampaigns.bat,,Min
-gosub, cxSplash
 Sleep, 100
 
 WinWaitClose, C:\Windows\system32\cmd.exe
