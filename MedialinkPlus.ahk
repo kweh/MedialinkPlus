@@ -6,7 +6,7 @@ DetectHiddenText, On
 	UPPSTART & INITIALISERING
 -----------------------------------------------------------
 */
-version = 2.1
+version = 2.34
 menuOn = 0
 lmenuOn = 0
 toolbar = 0
@@ -20,6 +20,7 @@ iconDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\ico ; Sätter mapp fö
 templateDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\assets\toCopy ; Sätter mapp för psd- pch fla-mallar
 webbannonsDir = G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%
 lagerDir = X:\digital.ntm.eu\lager
+notesDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\mlNotes
 
 ifNotExist, %mlpDir% ; om mappen inte finns
 	FileCreateDir, %mlpDir% ; skapa mappen
@@ -44,7 +45,7 @@ IniWrite, %version%, %mlpSettings%, Version, Version
 IniRead, mainVersion, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\master.ini, Version, Version
 
 ; SPLASH
-SplashImage, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\mlp2_1.jpg, B
+SplashImage, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\mlp2_3.jpg, B
 Sleep 3000
 SplashImage, Off
 
@@ -94,13 +95,36 @@ SetTimer, onTop, 100 ; Timer för extrafunktioner i Medialink-fönstret.
 
 	if (toolbar = 0 and mlActive = 1)
 	{
+		noteY =  0
+		noteX =  0
+		noteW =  100
+		noteH =  100
+		IniRead, noteX, %mlpDir%\notewin.ini, notewin, X
+		IniRead, noteY, %mlpDir%\notewin.ini, notewin, Y
+		IniRead, noteH, %mlpDir%\notewin.ini, notewin, H
+		IniRead, noteW, %mlpDir%\notewin.ini, notewin, W
+		if(!noteX || noteX = "ERROR")
+			{
+			noteX = 0
+			}
+		if(!noteY || noteY = "ERROR")
+			{
+			noteY = 0
+			}
+		if(!noteH || noteH = "ERROR")
+			{
+			noteH = 100
+			}
+		if(!noteW || noteW = "ERROR")
+			{
+			noteW = 100
+			}
+			
 		Toolbar = 1
 		WinGetPos, mlX, mlY,mlW,mlH,Atex MediaLink
 		mlX7 := mlX + 790
 		mlY7 := mlY + 54
 		
-		mlX6 := mlX+10
-		mlY6 := mlH-320
 		Gui, 7: Margin, 0, 0 
 		Gui, 7: +ToolWindow -Caption ; no title, no taskbar icon 
 		Gui, 7: Add, Picture, gcxMini ,%iconDir%\btn_cxmini.jpg
@@ -108,10 +132,35 @@ SetTimer, onTop, 100 ; Timer för extrafunktioner i Medialink-fönstret.
 		Gui, 7: +AlwaysOnTop
 		
 		Gui, 6: Margin, 0, 0
-		Gui, 6: +ToolWindow -Caption -0x200000
+		Gui, 6: +ToolWindow -0x200000
 		Gui, 6: Add, Edit, w220 h280 vinternaNoteringarEdit
-		Gui, 6: Show, x%mlX6% y%mlY6% NoActivate, noteWin
+		Gui, 6:+Resize -MaximizeBox
+		Gui, 6: Show, x%noteX% y%noteY% h%noteH% w%noteW% NoActivate, noteWin
 		Gui, 6: +AlwaysOnTop
+		
+		6GuiSize: 
+			GuiControl Move, internaNoteringarEdit, % "H" . (A_GuiHeight) . " W" . (A_GuiWidth)
+			If A_EventInfo = 1  ; The window has been minimized.  No action needed.
+			Return
+			if (A_EventInfo = 0)
+			{
+				WinGetPos,x,y,w,h, noteWin
+				if (h != 0)
+				{
+				h := h-34
+				}
+				if (w != 0)
+				{
+				w := w-16
+				}
+			IniWrite, %x%, %mlpDir%\notewin.ini, notewin, X
+			IniWrite, %y%, %mlpDir%\notewin.ini, notewin, Y
+			IniWrite, %h%, %mlpDir%\notewin.ini, notewin, H
+			IniWrite, %w%, %mlpDir%\notewin.ini, notewin, W
+			}
+		Return
+		
+		
 	}
 	if (toolbar = 0 and mlActive = 0)
 	{
@@ -149,10 +198,23 @@ return
 
 		If (SLV =1)
 		{ 
-			sleep, 200
+			temp := Clipboard
+			Send, ^c
+			mlOrdernummer := Clipboard
+			Clipboard := temp
+			sleep, 400
 			ControlGetText, internaNoteringar, Edit3, Atex MediaLink
-			sleep, 100
-			ControlSetText, Edit1, %internaNoteringar%, noteWin 
+			; Kontrollera om interna noteringar uppdaterats
+			;~ IfExist, %notesDir%\%mlOrdernummer%.txt
+				;~ FileRead, mlNote, %notesDir%\%mlOrdernummer%.txt
+			;~ IfExist, %notesDir%\%mlOrdernummer%.txt
+				;~ ControlSetText, Edit3, %internaNoteringar%`r`r%mlNote%, Atex MediaLink
+			;~ IfExist, %notesDir%\%mlOrdernummer%.txt
+				;~ ControlSetText, Edit1, %internaNoteringar%`r`r%mlNote%, noteWin 
+			;~ IfNotExist,  %notesDir%\%mlOrdernummer%.txt
+				ControlSetText, Edit1, %internaNoteringar%, noteWin 
+			
+			
 		}
 	}	
 return
@@ -216,6 +278,7 @@ return
 		
 		; Status-menyn
 		menu, status, add, Klar, statusKlar
+		menu, status, add, Obekräftad, statusObekraftad
 		menu, status, add, Bearbetas, statusBearbetas
 		menu, status, add, Korrektur skickat, statusKorrSkickat
 		menu, status, add, Korrektur klart, statusKorrekturKlart
@@ -227,10 +290,12 @@ return
 		menu, status, add, Repetition, statusRep
 		menu, status, add, Lev. Färdig, statusLevFardig
 		menu, status, add, Bokad, statusBokad
+		menu, status, add, Ej komplett manus, statusEjkomplett
 		menu, Menu, add, Status, :status
 
 		; Status-menyn - Ikoner
 		menu, status, Icon, Klar, %iconDir%\klar.ico
+		menu, status, Icon, Obekräftad, %iconDir%\klar.ico
 		menu, status, Icon, Bearbetas, %iconDir%\bearbetas.ico
 		menu, status, Icon, Korrektur skickat, %iconDir%\korr.ico
 		menu, status, Icon, Korrektur klart, %iconDir%\korr.ico
@@ -242,6 +307,7 @@ return
 		menu, status, Icon, Repetition, %iconDir%\rep.ico
 		menu, status, Icon, Lev. Färdig, %iconDir%\fardig.ico
 		menu, status, Icon, Bokad, %iconDir%\ny.ico
+		menu, status, Icon, Ej komplett manus, %iconDir%\ny.ico
 		menu, Menu, Icon, Status, %iconDir%\status.ico
 
 		; Tilldela-menyn
@@ -283,6 +349,8 @@ return
 		menu, mlp, Icon, Redigera kolumner, %iconDir%\columns.ico
 		menu, mlp, Icon, Kontrollera uppdateringar, %iconDir%\uppdatera.ico
 		menu, mlp, Icon, Inställningar, %iconDir%\settings.ico
+		
+		;~ menu, Menu, add, mlNotes, mlNotes
 		menu, Menu, Color, FFFFFF 
 		menu, Menu, show
 
@@ -385,7 +453,7 @@ getFormat(x)
 		format = 768x384
 		file = 768 x 384
 		}
-	if (x = "östcentrum Visby")
+	if (x = "Östcentrum Visby")
 		{
 		format = 1920x720
 		file = 1920 x 720
@@ -406,6 +474,10 @@ getFormat(x)
 	{
 		format = MOD
 		file = 468 x 240
+	}
+	if (x = "Modul MK")
+	{
+		format = MKMOD
 	}
 	
 	; Mobiler
@@ -454,6 +526,11 @@ getFormat(x)
 		format = MOB
 		file = 320 x 80
 	}
+	if (x = "Mobil Swipe")
+	{
+		format = MOB
+		file = 320 x 320
+	}
 
 	; Outsider
 	if (x = "Outsider 600")
@@ -488,6 +565,13 @@ getFormat(x)
 		format = PAN	
 		file = 980 x 240
 	}
+	
+	if (x = "Panorama 480")
+	{
+		format = PAN	
+		file = 980 x 480
+	}
+	
 	if (x = "Panorama 120")
 	{
 		format = PAN
@@ -503,6 +587,29 @@ getFormat(x)
 		format = PAN
 		file = 980 x 240
 	}
+	if (x = "Panorama 2 480")
+	{
+		format = PAN
+		file = 980 x 480
+	}
+	if (x = "Panorama 240")
+	{
+		format = PAN
+		file = 980 x 240
+	}
+	if (x = "Panorama 360")
+	{
+		format = PAN
+		file = 980 x 360
+	}
+
+	if (x = "Portal 980")
+	{
+		format = 980
+		file = 980 x 360
+	}
+
+
 
 	; Widescreen
 	if (x = "Widescreen 240")
@@ -527,6 +634,13 @@ getFormat(x)
 		format = 380
 		file = 380 x 280
 	}
+
+	if (x = "Portal 380")
+	{
+		format = 380
+		file = 380 x 280
+	}
+
 	if (x = "Portal 580")
 	{
 		format = 580
@@ -553,6 +667,16 @@ getFormat(x)
 	if (x = "Väderspons")
 	{
 		format = VADER
+	}
+	
+	if (x = "Julkalender")
+	{
+		format = MOB
+	}
+
+	if (x = "Helsida")
+	{
+		format = HEL
 	}
 }
 
@@ -604,100 +728,225 @@ cxProduct(format, type)
 	PluggCPC380 = 00000001610798f2
 	PluggCPC180 = 0000000161079a00
 	PluggCPCTXT = 0000000161079a17
+	CPC980 = 000000016108d7ba
+	
+	;---- Modul MK
+	MKMOD = 0000000161107ccf
+
+	;---- Helsida
+	HELid = 0000000160a381fe
 	
 	if (format = "MOD" && type = "Run On Site")
+	{
 		productID = %RosMOD%
+		template = 000000016020bedd
+	}
 	
 	if (format = "OUT" && type = "Run On Site")
+	{
 		productID = %RosOUT%
+		template = 000000016020ba25
+	}
 	
 	if (format = "WID" && type = "Run On Site")
+	{
 		productID = %RosWID%
+		template = 000000016020bf37
+	}
 	
 	if (format = "PAN" && type = "Run On Site")
+	{
 		productID = %RosPAN%
+		template = 000000016020ba73
+	}
 
 	if (format = "380" && type = "Run On Site")
+	{
 		productID = %Ros380%
+		template = 0000000161079935
+	}
 	
 	if (format = "180" && type = "Run On Site")
+	{
 		productID = %Ros180%
+		template = 00000001610799fe
+	}
 
 	if (format = "MOD" && type = "Riktad")
+	{
 		productID = %RiktadMOD%
+		template = 00000001609e56da
+	}
 	
 	if (format = "OUT" && type = "Riktad")
+	{
 		productID = %RiktadOUT%
+		template = 00000001609e5542
+	}
 
 	if (format = "WID" && type = "Riktad")
+	{
 		productID = %RiktadWID%
+		template = 00000001609ea38e
+	}
 	
 	if (format = "PAN" && type = "Riktad")
+	{
 		productID = %RiktadPAN%
+		template = 00000001609ea651
+	}
 	
 	if (format = "380" && type = "Riktad")
+	{
 		productID = %Riktad380%
+		template = 
+	}
+
+	if (format = "980")
+	{
+		productID = %CPC980%
+		template = 000000016108d84c
+	}
+
 
 	if (format = "180" && type = "Riktad")
+	{
 		productID = %Riktad180%
+		template = 
+	}
 	
 	if (format = "MOD" && type = "Plugg")
+	{
 		productID = %PluggMOD%
+		template = 000000016020bfb4
+	}
 
 	if (format = "OUT" && type = "Plugg")
+	{
 		productID = %PluggOUT%
+		template = 000000016020bf88
+	}
 	
 	if (format = "WID" && type = "Plugg")
+	{
 		productID = %PluggWID%
+		template = 000000016020bfea
+	}
 
 	if (format = "PAN" && type = "Plugg")
+	{
 		productID = %PluggPAN%
+		template = 000000016020bfca
+	}
 
 	if (format = "380" && type = "Plugg")
+	{
 		productID = %Plugg380%
+		template = 0000000161079912
+	}
 
 	if (format = "180" && type = "Plugg")
+	{
 		productID = %Plugg180%
+		template = 
+	}
 
 	if (format = "380" && type = "CPC")
+	{
 		productID = %CPC380%
+		template = 
+	}
 
 	if (format = "180" && type = "CPC")
+	{
 		productID = %CPC180%
+		template = 
+	}
+
+	if (format = "PAN" && type = "CPC")
+	{
+		productID = %CPC180%
+		template = 000000016108d7ba
+	}
 	
 	if (format = "380" && type = "CPC Plugg")
+	{
 		productID = %PluggCPC380%
+		template = 000000016108d84c
+	}
 
 	if (format = "180" && type = "CPC Plugg")
+	{
 		productID = %PluggCPC180%
+		template = 0000000161079a0f
+	}
 
 
-	if (type = "Reach")
+	if (type = "REACH468")
+	{
 		productID = %Reach%
+		template = 000000016017a451
+	}
 
 	if (format = "TXT" && type = "Run On Site")
+	{
 		productID = %RosTXT%
+		template = 0000000161079a15
+	}
 
 	if (format = "TXT" && type = "CPC")
+	{
 		productID = %CPCTXT%
+		template = 0000000161079a15
+	}
 
 	if (format = "TXT" && type = "CPC Plugg")
+	{
 		productID = %PluggCPCTXT%
+		template = 
+	}
 
 	if (format = "MOB" )
+	{
 		productID = %Mobil%
+		template = 0000000160fb5086
+	}
 
 	if (format = "MOB" && type = "Retarget")
+	{
 		productID = %RetargetMob%
+		template = 
+	}
 
 	if (format = "PAN" && type = "Retarget")
+	{
 		productID = %RetargetPan%
+		template = 
+	}
 
 	if (format = "580")
+	{
 		productID = %Ros580%
+		template = 00000001610811d9
+	}
 
 	if (format = "WID" and mlTidning = "AF")
+	{
 		productID = %Ros380%
+		template = 
+	}
+	
+	if (format = "MKMOD")
+	{
+		productID = %MKMOD%
+		template = 
+	}
+
+	if (format = "HEL")
+	{
+		productID = %HELid%
+		template = 0000000160a38246
+	}
 	
 }
 
@@ -883,7 +1132,11 @@ Return
 korrMail:
 	assign(AnvKort)
 	status("Korrektur skickat")
+	order = 1
+	bokning = 0
 	gosub, cxGetAdId
+	if (order = 1)
+	{
 	subject = Korrektur: ; Text att sätta i ämnesraden innan kundnamn (ordernummer)
 	mailTo(mlSaljare, subject, mlOrdernummer, mlKundnamn)
 	text =
@@ -893,7 +1146,7 @@ korrMail:
 ----
 
 {CTRL down}f{CTRL up}Länk för rapport:{CTRL down}f{CTRL up}
-http://digital.ntm.eu/rapport/advertiser/%kundID%/campaign/%campaignID%/
+http://rapport.ntm-digital.se/advertiser/%kundID%/campaign/%campaignID%/
 
 Spara denna länk{SHIFT down}1{SHIFT up}
 På denna länk finns information om hur denna order är inbokad. Kontrollera så att start/stoppdatum stämmer och att antal exponeringar är korrekt. Om vi inte får något svar startar denna annons på startdatumet. Denna länk fungerar även som statusrapport för denna kampanj. Här kan du se exakt hur många exponeringar/klick som levererats hittills i kampanjen. Om du någon gång under kampanjens gång upplever att något inte står rätt till, kontakta Traffic.
@@ -903,6 +1156,12 @@ På denna länk finns information om hur denna order är inbokad. Kontrollera s�
 {CTRL down}{Home}{CTRL up}
 	)
 	Send, %text%
+}
+if (order = 0)
+{
+	subject = Korrektur: ; Text att sätta i ämnesraden innan kundnamn (ordernummer)
+	mailTo(mlSaljare, subject, mlOrdernummer, mlKundnamn)
+}
 Return
 
 startaAnnonsPS:
@@ -976,13 +1235,14 @@ while (adCount < xAds)
 	Sleep, 50
 	Send, ^c
 	Sleep, 50
+	printFinns = 0
 	printCheck(Clipboard) ; printFinns = 1 eller 0
 		if (printFinns = 1)
 		{
 			printAds++
 			status("Vilande")
 		}
-	Sleep, 100
+	Sleep, 200
 	Send, {Down}
 }
 msgbox, Klar!`n%printAds% annonser av %xAds% hade printmaterial tillgängligt.
@@ -993,7 +1253,7 @@ IniRead, mainVersion, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\master.ini
 if (version < mainVersion){
 	MsgBox, 68, Ny version!, Det finns en ny version av Medialink Plus. Vill du hämta den?
 	IfMsgBox, Yes
-		Run, G:\NTM\NTM Digital Produktion\MedialinkPlus
+		Run, http://medialinkplus.dnns.se/
 }
 return
 /*
@@ -1004,8 +1264,8 @@ return
 cxBokning:
 	Send, ^c
 	bokning = 1
-	gosub, cxKundCheck ; returnerar kundID
-	gosub, cxKampanjbokning ; Boknings-GUI och inbokning av kampanj
+	kundID = 
+	goto, cxKundCheck ; returnerar kundID
 return
 
 cxCPM:
@@ -1065,6 +1325,11 @@ cxKundCheck:
 		StringSplit, xmlSplit, xmlPart, >
 		StringSplit, xmlSplit, xmlSplit4, <
 		kundID = %xmlSplit1% ; kundID innehåller kundens ID
+		gosub, cxSplashoff
+		if (bokning != 0)
+		{
+		goto, cxKampanjbokning
+		}
 	}
 	
 	if (xmlPart = 0 && bokning = 0) ; Kund inte hittad, ingen inbokning
@@ -1113,7 +1378,7 @@ cxKundSaknas:
 			StringSplit, xmlSplit, DATA, >
 			StringSplit, xmlSplit, xmlSplit6, <
 			kundID = %xmlSplit1% ; kundID innehåller kundens ID
-			Goto, cxKampanjbokning
+			goto, cxKampanjbokning
 		}
 		return
 	}
@@ -1124,6 +1389,11 @@ return
 cxKampanjbokning:
 	Gui, 1:Destroy ; För säkerhets skull?
 	getFormat(mlEnhet)
+	if ( format = "")
+	{
+		Msgbox, Kunde inte hämta produkt, avbryter.
+		goto, cxDie
+	}
 	advertisingFolder = %mlTidning% - %mlKundnr% - %mlKundnamn%
 	campaign = %mlTidning% - %format%%mlInternetenhet% - %mlOrdernummer%
 
@@ -1297,12 +1567,260 @@ cxBokaAdvertisement:
 	OPTS = Upload: %FILE%
 	HTTPRequest( URL, DATA, HEAD, OPTS )
 	; --------------------------------------------------------------------
+	Goto, cxBokaSiteTargeting
+return
+
+cxBokaSiteTargeting:
+	StringReplace, mlKundnamn, mlKundnamn,&,,A
+	targeting = 
+	(
+		<cx:publisherTarget>
+    		<cx:url>http://%mlSite%</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+	)
+
+	; NT FOLKBLADET
+	if (mlSite = "nt.se")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://nt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://folkbladet.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	; NT FOLKBLADET MOBIL
+	if (mlSite = "mobil.nt.se")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://m.nt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://m.folkbladet.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://mobil.nt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://mobil.folkbladet.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	; NSD KURIREN
+	if (mlSite = "nsd.se" ||mlSite = "kuriren.nu")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://nsd.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://kuriren.nu</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	; PT
+	if (mlSite = "pt.se")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://pitea-tidningen.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	; PT MOBIL
+	if (mlSite = "m.pitea-tidn.se")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://m.pitea-tidningen.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://mobil.pitea-tidningen.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	; NSD KURIREN MOBIL
+	if (mlSite = "mobil.nsd.se" ||mlSite = "mobil.kuriren.nu")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://m.nsd.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://m.kuriren.nu</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://mobil.nsd.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://mobil.kuriren.nu</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	; CORREN MOBIL
+	if (mlSite = "mobil.corren.se")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://m.corren.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://mobil.corren.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	; MVT MOBIL
+	if (mlSite = "mobil.mvt.se")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://m.mvt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://mobil.mvt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	; VT MOBIL
+	if (mlSite = "mobil.vt.se")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://m.vt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://mobil.vt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	; UNT MOBIL
+	if (mlSite = "mobil.unt.se")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://m.unt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://mobil.unt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	if (mlSite = "unt.mobil.se")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://m.unt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://mobil.unt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	; UNT Sigtunabygden
+	if (mlSite = "sigtunabygden.se")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://unt.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+
+	; HELAGOTLAND MOBIL
+	if (mlSite = "m.helagotland.se")
+	{
+		targeting = 
+		(
+		<cx:publisherTarget>
+    		<cx:url>http://m.helagotland.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+  		<cx:publisherTarget>
+    		<cx:url>http://mobil.helagotland.se</cx:url>
+    		<cx:targetType>POSITIVE</cx:targetType>
+  		</cx:publisherTarget>
+		)
+	}
+
+	; --------------------------- HTTP-Request ---------------------------
+	URL = https://cxad.cxense.com/api/secure/publisherTargeting/%kampanjID%
+	DATA := ""
+	XML =
+	(
+<?xml version="1.0"?>
+<cx:publisherTargeting xmlns:cx="http://cxense.com/cxad/api/cxad">
+  <cx:templateId>%template%</cx:templateId>
+  %targeting%
+</cx:publisherTargeting>
+	)
+	FILE = %cxDir%\targeting.xml
+	refreshFile(XML, FILE)
+	HEAD = Content-Type: text/xml`nAuthorization: Basic QVBJLlVzZXI6cGFzczEyMw==
+	OPTS = Upload: %FILE%
+	HTTPRequest( URL, DATA, HEAD, OPTS )
+	; --------------------------------------------------------------------
 	gosub, cxSplashOff
 	MsgBox,4, Bokning klar, Inbokning klar, öppna i webbläsaren?
 		IfMsgBox, Yes
 			run, https://cxad.cxense.com/adv/campaign/%kampanjID%/overview
 		IfMsgBox, No
 			return
+
+	gosub, cxSplashOff
 return
 
 cxDie:
@@ -1355,7 +1873,7 @@ Rapport:
 	bokning = 0
 	gosub, cxGetAdId
 	if order = 1
-		run, http://digital.ntm.eu/rapport/advertiser/%kundID%/campaign/%campaignID%/
+		run, http://rapport.ntm-digital.se/advertiser/%kundID%/campaign/%campaignID%/
 Return
 
 oppnaCxense:
@@ -1423,6 +1941,7 @@ rapporteraFelOK:
 return
 
 lager:
+	XML = 
 	Loop, Parse, getList, `n
 	{
 		StringSplit, kolumn, A_LoopField, %A_Tab%
@@ -1433,6 +1952,21 @@ lager:
 		Ordernr = %kolumn1%
 		Start := kolumn%iniStart%
 		Stopp := kolumn%iniStopp%
+
+		;~ StringTrimRight, startYear, Start, 6 ; startYear
+		;~ StringTrimRight, startMonth, Start, 3 ; startMonth
+		;~ StringTrimLeft, startMonth, startMonth, 5 ; startMonth
+		;~ StringTrimLeft, startDay, Start, 8 ; startDay
+		;~ startMonth := startMonth-1
+		;~ Start = %startYear%-%startMonth%-%startDay%
+		
+		;~ StringTrimRight, stoppYear, Stopp, 6 ; stoppYear
+		;~ StringTrimRight, stoppMonth, Stopp, 3 ; stoppMonth
+		;~ StringTrimLeft, stoppMonth, stoppMonth, 5 ; stoppMonth
+		;~ StringTrimLeft, stoppDay, Stopp, 8 ; stoppDay
+		;~ stoppMonth := stoppMonth-1
+		;~ Stopp = %stoppYear%-%stoppMonth%-%stoppDay%
+
 		Kundnamn := kolumn%iniKundnamn%
 		StringReplace, Kundnamn, Kundnamn, & , &amp;, All
 		Exponeringar := kolumn%iniExponeringar%
@@ -1466,7 +2000,9 @@ lager:
 	)
 	
 	FileDelete, %lagerDir%\lager.xml
+	FileEncoding, UTF-8
 	FileAppend, %fullXML%, %lagerDir%\lager.xml
+	FileEncoding
 	Msgbox, XML-fil genererad
 return
 ;--------------
@@ -1531,6 +2067,14 @@ statusBokad:
 	status("Bokad")
 return
 
+statusObekraftad:
+	status("Obekräftad")
+return
+
+statusEjkomplett:
+	status("Ej komplett manus")
+return
+
 ; Kopiera kampanjer
 copyCampaigns:
 	i = 1
@@ -1550,6 +2094,34 @@ copyCampaigns:
 	
 return
 
+
+mlNotes:
+	ControlGetText, getInterna, Edit3, Atex MediaLink
+	FormatTime, Time
+	mlNote = 
+	(
+	
+*** REDIGERAD ***
+%AnvKort% - %Time%:
+
+	)
+	Gui, 10:Add, Edit, w300 r20 vmlNotes, %mlNote%
+	Gui, 10:Add, Button, Default gmlNotesSubmit, Spara
+	Gui, 10:Show
+return
+
+10GuiClose:
+	Gui, 10:Destroy
+return
+
+mlNotesSubmit:
+	Gui, 10:Submit
+	Gui, 10:Destroy
+	FileDelete, %notesDir%\%mlOrdernummer%.txt
+	FileAppend, %mlNotes%, %notesDir%\%mlOrdernummer%.txt
+	
+		
+return
 ;--------------
 ;	Tilldela
 ;--------------
@@ -1582,10 +2154,11 @@ if (skin = "ERROR")
 Gui, 5:Add, CheckBox, x12 y10 w180 h30 vnoteWinCheck %noteCheck%, Stort noteringsfönster + cxMini
 Gui, 5:Add, Edit, x12 y70 w180 h30 vskin r1, %skin%
 Gui, 5:Add, Text, x12 y50 w180 h20, cx-skin: ( filnamn.jpg - tom om inget)
-Gui, 5:Add, Button, x52 y120 w100 h30 gsettingsSave, Spara
+Gui, 5:Add, Button, x52 y120 w100 h30 gnoteReset, Återställ noteringsfönster
+Gui, 5:Add, Button, x52 y160 w100 h30 gsettingsSave, Spara
 Gui, 5: +ToolWindow +Caption
 Gui, 5:Color, FFFFFF
-Gui, 5:Show, w207 h168, Inställningar
+Gui, 5:Show, w207 h200, Inställningar
 return
 
 5GuiClose:
@@ -1601,6 +2174,12 @@ Gui, 5:Submit
 IniWrite, %skin%, %mlpDir%\settings.ini, Settings, Skin
 IniWrite, %noteWinCheck%, %mlpDir%\settings.ini, Settings, NoteWin
 reload
+return
+
+noteReset:
+	Gui, 5:destroy
+	FileDelete, %mlpDir%\notewin.ini
+	MsgBox, Noteringsfönstret återställt.
 return
 
 
