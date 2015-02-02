@@ -13,3 +13,5 @@ ny_mlp.ahk
 xml.ahk
 xpath.ahk
 lager.ahk
+*.exe
+weblink.ahk

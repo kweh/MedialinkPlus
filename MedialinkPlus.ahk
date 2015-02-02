@@ -1,51 +1,104 @@
 ﻿SetTitleMatchMode, 2
 DetectHiddenText, On
+#SingleInstance force
+
+
+/*
+   ___________________________________________________________
+  |                                                           |
+  |                         ATT GÖRA                          |
+  |___________________________________________________________|
+   \_________________________________________________________/
+    |::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    |
+    | • Kontroll av kampanjID innan inbokning
+    |
+    |
+    |
+    |
+    |
+    |
+    |::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+
+
+
+*/
+
 
 /*
 -----------------------------------------------------------
-	UPPSTART & INITIALISERING
+	Miljövariabler
 -----------------------------------------------------------
 */
-version = 2.34
+
+#include cxuser.ahk
+#include httpreq.ahk
+
+version = 2.422
 menuOn = 0
 lmenuOn = 0
 toolbar = 0
 traytip = 0
 noteWin = 1
 skin = 
+nyttcitat = 0
+citat := 
+author =
+weblinkget = 0
 
 mlpDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\user\%A_UserName% ; Sätter användarens användarmapp
-cxDir = %A_AppData%\MLP\cx
-iconDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\ico ; Sätter mapp för ikoner
-templateDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\assets\toCopy ; Sätter mapp för psd- pch fla-mallar
-webbannonsDir = G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%
-lagerDir = X:\digital.ntm.eu\lager
-notesDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\mlNotes
-
 ifNotExist, %mlpDir% ; om mappen inte finns
 	FileCreateDir, %mlpDir% ; skapa mappen
+
+cxDir = %A_AppData%\MLP\cx
 IfNotExist, %cxDir%
 	FileCreateDir, %cxDir%
 IfNotExist, %mlpDir%\skin
 	FileCreateDir, %mlpDir%\skin
 
-#include cxuser.ahk
-#include httpreq.ahk
 
+iconDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\ico ; Sätter mapp för ikoner
+templateDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\assets\toCopy ; Sätter mapp för psd- pch fla-mallar
+webbannonsDir = G:\NTM\NTM Digital Produktion\Webbannonser\0-Arkiv\%A_YYYY%
+lagerDir = X:\digital.ntm.eu\lager
+weblinkDir = X:\digital.ntm.eu\weblink
+notesDir = G:\NTM\NTM Digital Produktion\MedialinkPlus\mlNotes
 mlpSettings = %mlpDir%\settings.ini 
 IfNotExist, %mlpSettings%
 	{
 	IniWrite, ERROR, %mlpDir%\settings.ini, Settings, Skin
 	IniWrite, 1, %mlpDir%\settings.ini, Settings, NoteWin
 	}	
+
 mlpKolumner = %mlpDir%\kolumner.ini
 FileAppend,,%mlpDir%\settings.ini
 IniWrite, %version%, %mlpSettings%, Version, Version
 
 IniRead, mainVersion, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\master.ini, Version, Version
 
+; Ladda hem citat
+gosub, citat
+
+
+/*
+-----------------------------------------------------------
+	INSTALLATION
+-----------------------------------------------------------
+*/
+
+
+
+
+/*
+-----------------------------------------------------------
+	UPPSTART & INITIALISERING
+-----------------------------------------------------------
+*/
+
 ; SPLASH
-SplashImage, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\mlp2_3.jpg, B
+SplashImage, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\mlp2_42.jpg, B
 Sleep 3000
 SplashImage, Off
 
@@ -85,6 +138,14 @@ SetTimer, onTop, 100 ; Timer för extrafunktioner i Medialink-fönstret.
 	IfWinActive, Atex MediaLink
 	{
 		mlActive = 1
+		if (nyttcitat = 0)
+		{
+		WinGetTitle, mlTitle, Atex MediaLink
+		mlNewTitle = %mlTitle%     ::     %citat% - %author%
+		WinSetTitle, %mlNewTitle%
+		nyttcitat = 1
+		}
+
 	} else {
 		mlActive = 0
 	}
@@ -144,6 +205,7 @@ SetTimer, onTop, 100 ; Timer för extrafunktioner i Medialink-fönstret.
 			Return
 			if (A_EventInfo = 0)
 			{
+				
 				WinGetPos,x,y,w,h, noteWin
 				if (h != 0)
 				{
@@ -153,10 +215,10 @@ SetTimer, onTop, 100 ; Timer för extrafunktioner i Medialink-fönstret.
 				{
 				w := w-16
 				}
-			IniWrite, %x%, %mlpDir%\notewin.ini, notewin, X
-			IniWrite, %y%, %mlpDir%\notewin.ini, notewin, Y
-			IniWrite, %h%, %mlpDir%\notewin.ini, notewin, H
-			IniWrite, %w%, %mlpDir%\notewin.ini, notewin, W
+				IniWrite, %x%, %mlpDir%\notewin.ini, notewin, X
+				IniWrite, %y%, %mlpDir%\notewin.ini, notewin, Y
+				IniWrite, %h%, %mlpDir%\notewin.ini, notewin, H
+				IniWrite, %w%, %mlpDir%\notewin.ini, notewin, W
 			}
 		Return
 		
@@ -164,7 +226,9 @@ SetTimer, onTop, 100 ; Timer för extrafunktioner i Medialink-fönstret.
 	}
 	if (toolbar = 0 and mlActive = 0)
 	{
-		return
+		toolbar = 0
+		Gui, 7: Destroy
+		Gui, 6: Destroy
 	}
 	if (toolbar = 1 och mlActive = 1)
 	{
@@ -250,9 +314,9 @@ return
 		}
 
 		; cxense-menyn
-		menu, cxense, add, Boka kampanj, cxBokning
-		menu, cxense, add, Öppna i cxense, oppnaCxense
-		menu, cxense, add, Rapport, rapport
+		menu, cxense, add, Boka kampanj, cxStart
+		menu, cxense, add, Öppna i cxense, oppnaCXfork
+		menu, cxense, add, Rapport, oppnaRapportFork
 		menu, cxense, Icon, Boka kampanj, %iconDir%\boka.ico
 		menu, cxense, Icon, Öppna i cxense, %iconDir%\oppna.ico
 		menu, cxense, Icon, Rapport, %iconDir%\cxrapport.ico
@@ -343,14 +407,14 @@ return
 		; MediaLink Plus-menyn
 		menu, mlp, add, Redigera kolumner, kolumner
 		menu, mlp, add, Kontrollera uppdateringar, updateCheck
+		menu, mlp, add, Uppdatera citat, cycleCitat
 		menu, mlp, add, Inställningar, settings
 		menu, Menu, add, MediaLink Plus, :mlp
 		menu, Menu, Icon, MediaLink Plus, %iconDir%\plus.ico
 		menu, mlp, Icon, Redigera kolumner, %iconDir%\columns.ico
 		menu, mlp, Icon, Kontrollera uppdateringar, %iconDir%\uppdatera.ico
 		menu, mlp, Icon, Inställningar, %iconDir%\settings.ico
-		
-		;~ menu, Menu, add, mlNotes, mlNotes
+
 		menu, Menu, Color, FFFFFF 
 		menu, Menu, show
 
@@ -384,6 +448,7 @@ rensaTecken(ByRef x) ; Rensar ur valda tecken ur en variabel
 		StringReplace, x, x, &&, &, All
 		StringReplace, x, x, /,%A_SPACE%, All
 		StringReplace, x, x, \,%A_SPACE%, All
+		StringReplace, x, x, :,%A_SPACE%, All
 }
 stripDash(ByRef x)
 {
@@ -703,13 +768,14 @@ cxProduct(format, type)
 	RosTXT = 0000000160f4b805
 
 	;---- PLUGG
-	PluggMOD = 000000016020bf61
-	PluggOUT = 000000016020bf38
-	PluggPAN = 000000016020bf82
-	PluggWID = 000000016020bf85
-	Plugg380 = 0000000160ec78f7
-	Plugg180 = 0000000160eb551b
+	PluggMOD = 00000001613e2960
+	PluggOUT = 00000001613e2966
+	PluggPAN = 00000001613e296c
+	PluggWID = 00000001613e2c51
+	Plugg380 = 00000001613e2944
+	Plugg180 = 00000001613e291b
 	PluggTXT = 0000000160f4b848
+	PluggMOB = 000000016116a6d6
 
 	;---- REACH
 	Reach = 000000015f460c65
@@ -818,37 +884,49 @@ cxProduct(format, type)
 	if (format = "MOD" && type = "Plugg")
 	{
 		productID = %PluggMOD%
-		template = 000000016020bfb4
+		template = 00000001613e2963
+	}
+
+	if (format = "MOB" )
+	{
+		productID = %Mobil%
+		template = 0000000160fb5086
+	}
+
+	if (format = "MOB" && type = "Plugg")
+	{
+		productID = %PluggMOB%
+		template = 00000001613f727a
 	}
 
 	if (format = "OUT" && type = "Plugg")
 	{
 		productID = %PluggOUT%
-		template = 000000016020bf88
+		template = 00000001613e2969
 	}
 	
 	if (format = "WID" && type = "Plugg")
 	{
 		productID = %PluggWID%
-		template = 000000016020bfea
+		template = 00000001613e2c54
 	}
 
 	if (format = "PAN" && type = "Plugg")
 	{
 		productID = %PluggPAN%
-		template = 000000016020bfca
+		template = 00000001613e297d
 	}
 
 	if (format = "380" && type = "Plugg")
 	{
 		productID = %Plugg380%
-		template = 0000000161079912
+		template = 00000001613e2948
 	}
 
 	if (format = "180" && type = "Plugg")
 	{
 		productID = %Plugg180%
-		template = 
+		template = 00000001613e291e
 	}
 
 	if (format = "380" && type = "CPC")
@@ -882,7 +960,7 @@ cxProduct(format, type)
 	}
 
 
-	if (type = "REACH468")
+	if (format = "REACH468")
 	{
 		productID = %Reach%
 		template = 000000016017a451
@@ -904,12 +982,6 @@ cxProduct(format, type)
 	{
 		productID = %PluggCPCTXT%
 		template = 
-	}
-
-	if (format = "MOB" )
-	{
-		productID = %Mobil%
-		template = 0000000160fb5086
 	}
 
 	if (format = "MOB" && type = "Retarget")
@@ -975,7 +1047,8 @@ refreshFile(content, file)
 getAnvnamn:
 	WinGetTitle, Windowtext, Atex MediaLink
 	StringSplit, WindowSplit, Windowtext, =
-	Anvandare =  %WindowSplit2%
+	StringSplit, WindowSplit, WindowSplit2, %A_Space%
+	Anvandare =  %WindowSplit1%
 	StringTrimRight, AnvKort, Anvandare, 2 ; Sätter AnvKort till användarens förnamn
 
 return
@@ -984,6 +1057,8 @@ getList: ; Hämtar information från valt objekt i listvyn
 	gosub, getAnvnamn
 	ControlGet, listCount, List, Count Selected, %control%, Atex MediaLink
 	ControlGet, getList, List, Selected, %control%, Atex MediaLink
+	if (weblinkget = 1)
+		ControlGet, getList, List, , %control%, Atex MediaLink
 	StringSplit, getListRow, getList, `n
 	listRow = %getListRow1%
 	Stringsplit, kolumn, listRow, `t
@@ -997,6 +1072,8 @@ getList: ; Hämtar information från valt objekt i listvyn
 	IniRead, iniSaljare, %mlpDir%\kolumner.ini, kolumner, Saljare
 	IniRead, iniProdukt, %mlpDir%\kolumner.ini, kolumner, Produkt
 	IniRead, iniEnhet, %mlpDir%\kolumner.ini, kolumner, Internetenhet
+	IniRead, iniStatus, %mlpDir%\kolumner.ini, kolumner, Status
+	IniRead, iniTilldelad, %mlpDir%\kolumner.ini, kolumner, Tilldelad
 
 
 	mlStartdatum := kolumn%iniStart%
@@ -1006,6 +1083,8 @@ getList: ; Hämtar information från valt objekt i listvyn
 	mlKundnamn := kolumn%iniKundnamn%
 	mlSaljare := kolumn%iniSaljare%
 	mlProdukt := kolumn%iniProdukt%
+	mlStatus := kolumn%iniStatus%
+	mlTilldelad := kolumn%iniTilldelad%
 	
 	StringSplit, prodArray, mlProdukt , %A_Space%
 	mlTidning = %prodArray1%
@@ -1022,6 +1101,7 @@ getList: ; Hämtar information från valt objekt i listvyn
 
 	mlEnhet := kolumn%iniEnhet%
 	mlOrdernummer = %kolumn1%
+	weblinkget = 0
 	
 return
 
@@ -1081,19 +1161,24 @@ Gui, Add, Text, x12 y430 w90 h20 , Kundnamn:
 Gui, Add, Text, x12 y460 w90 h20 , Faktisk Säljare:
 Gui, Add, Text, x12 y490 w90 h20 , Produkt:
 Gui, Add, Text, x12 y520 w90 h20 , Internetenhet:
-Gui, Add, DropDownList, x132 y310 w100 h20 R20 vddStart, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
-Gui, Add, DropDownList, x132 y340 w100 h20 R20 vddStopp, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20 
-Gui, Add, DropDownList, x132 y370 w100 h20 R20 vddExp, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20 
-Gui, Add, DropDownList, x132 y400 w100 h20 R20 vddKnr, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20 
-Gui, Add, DropDownList, x132 y430 w100 h20 R20 vddKnamn, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
-Gui, Add, DropDownList, x132 y460 w100 h20 R20 vddSaljare, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
-Gui, Add, DropDownList, x132 y490 w100 h20 R20 vddProdukt, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
-Gui, Add, DropDownList, x132 y520 w100 h20 R20 vddInternetenhet, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
-Gui, Add, Button, x12 y550 w100 h30 gkolumnSubmit, Spara
-Gui, Add, Button, x132 y550 w100 h30 gAvbryt, Avbryt
+Gui, Add, Text, x12 y550 w90 h20 , Status:
+Gui, Add, Text, x12 y580 w90 h20 , Tilldelad:
+Gui, Add, DropDownList, x132 y310 w100 h20 R20 Choose%iniStart% vddStart, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, DropDownList, x132 y340 w100 h20 R20 Choose%iniStopp% vddStopp, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20 
+Gui, Add, DropDownList, x132 y370 w100 h20 R20 Choose%iniExponeringar% vddExp, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20 
+Gui, Add, DropDownList, x132 y400 w100 h20 R20 Choose%iniKundnr% vddKnr, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20 
+Gui, Add, DropDownList, x132 y430 w100 h20 R20 Choose%iniKundnamn% vddKnamn, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, DropDownList, x132 y460 w100 h20 R20 Choose%iniSaljare% vddSaljare, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, DropDownList, x132 y490 w100 h20 R20 Choose%iniProdukt% vddProdukt, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, DropDownList, x132 y520 w100 h20 R20 Choose%iniEnhet% vddInternetenhet, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, DropDownList, x132 y550 w100 h20 R20 Choose%iniStatus% vddStatus, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, DropDownList, x132 y580 w100 h20 R20 Choose%iniTilldelad% vddTilldelad, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20
+Gui, Add, Button, x12 y610 w100 h30 gkolumnSubmit, Spara
+Gui, Add, Button, x132 y610 w100 h30 gAvbryt, Avbryt
 Gui, Color, FFFFFF
 Gui, +ToolWindow +Caption
-Gui, Show, x843 y311 h590 w244, Kolumn-konfigurering
+Gui, Show, x843 y311 h650 w244, Kolumn-konfigurering
+
 Return
 
 
@@ -1113,6 +1198,8 @@ kolumnSubmit: ; Sparar information från dialogruta skapad i sub Kolumner
 	IniWrite, %ddSaljare%, %mlpDir%\kolumner.ini, Kolumner, Saljare
 	IniWrite, %ddProdukt%, %mlpDir%\kolumner.ini, Kolumner, Produkt
 	IniWrite, %ddInternetenhet%, %mlpDir%\kolumner.ini, Kolumner, Internetenhet
+	IniWrite, %ddStatus%, %mlpDir%\kolumner.ini, Kolumner, Status
+	IniWrite, %ddTilldelad%, %mlpDir%\kolumner.ini, Kolumner, Tilldelad
 Return
 
 sokOrder:
@@ -1253,7 +1340,17 @@ IniRead, mainVersion, G:\NTM\NTM Digital Produktion\MedialinkPlus\dev\master.ini
 if (version < mainVersion){
 	MsgBox, 68, Ny version!, Det finns en ny version av Medialink Plus. Vill du hämta den?
 	IfMsgBox, Yes
-		Run, http://medialinkplus.dnns.se/
+		{
+			IfNotExist, %A_MyDocuments%\MedialinkPlus\Temp
+				FileCreateDir, %A_MyDocuments%\MedialinkPlus\Temp
+			FileDelete, %A_MyDocuments%\MedialinkPlus\Temp\install.exe
+			UrlDownloadToFile, http://dnns.se/mlp/mlp/latest/install.exe, %A_MyDocuments%\MedialinkPlus\Temp\install.exe
+
+			If (ErrorLevel != 1) ; Om filen laddades ner
+			{
+				Run, %A_MyDocuments%\MedialinkPlus\Temp\install.exe
+			}
+		}
 }
 return
 /*
@@ -1261,6 +1358,16 @@ return
 	CX-Bokning
 -----------------------------------------------------------
 */
+
+cxStart:
+	if (listCount > 1)
+	{
+		goto, bokaFlera
+	} else {
+		goto, cxBokning
+	}
+return
+
 cxBokning:
 	Send, ^c
 	bokning = 1
@@ -1418,7 +1525,7 @@ cxKampanjbokning:
 
 	Gui, 1: Add, GroupBox, x12 y10 w420 h180 , Bokningsöversikt
 	Gui, 1: Add, Text, x22 y40 w80 h20 , Typ:
-	Gui, 1: Add, DropDownList, x142 y40 w120 h20 vType gType R7, Run On Site||Riktad|Plugg|Reach|Retarget|CPC|CPC Plugg
+	Gui, 1: Add, DropDownList, x142 y40 w120 h20 vType gType R7, Run On Site||Riktad|Plugg|Retarget|CPC
 	Gui, 1: Add, Text, x22 y70 w100 h20 , Advertising Folder:
 	Gui, 1: Add, Edit, x142 y70 w280 h20 vadvertisingFolder, %advertisingFolder%
 	Gui, 1: Add, Text, x22 y100 w100 h20 , Campaign:
@@ -1430,7 +1537,7 @@ cxKampanjbokning:
 	Gui, 1: Add, Text, x22 y160 w100 h20 , Exponeringar:
 	Gui, 1: Add, Edit, x142 y160 w280 h20 vmlExponeringar, %mlExponeringar%
 	Gui, 1: Add, Button, x332 y200 w100 h30 gcxAvbryt, Avbryt
-	Gui, 1: Add, Button, x222 y200 w100 h30 gcxBokaKampanj, OK
+	Gui, 1: Add, Button, x222 y200 w100 h30 gcxBokaKampanj Default, OK
 	Gui, 1: Color, FFFFFF
 	Gui, 1: +ToolWindow +Caption
 	Gui, 1: Show, x726 y420 h250 w450, Bokningsöversikt
@@ -1447,7 +1554,7 @@ return
 
 Type:
 	Gui, 1:Submit, NoHide
-	if (Type = "Retarget" || Type = "CPC" || Type = "CPC Plugg")
+	if (Type = "Retarget" || Type = "CPC" || Type = "Plugg")
 	{
 		GuiControl, Disable, mlExponeringar
 	} else {
@@ -1474,9 +1581,9 @@ cxBokaKampanj:
 	stoppTid = %mlStoppdatum2%
 	
 	if (Type = "Plugg")
-		campaign = %mlTidning% - %format% - PLUGG - %mlOrdernummer%
+		campaign = %mlTidning% - PLUGG - %format% - %mlOrdernummer%
 	if (Type = "Reach")
-		campaign = %mlTidning% - %format% - REACH - %mlOrdernummer%
+		campaign = %mlTidning% - REACH - %format% - %mlOrdernummer%
 	
 	gosub, cxSplashOn	
 	; --------------------------- HTTP-Request ---------------------------
@@ -1502,7 +1609,6 @@ cxBokaKampanj:
 	; --------------------------------------------------------------------
 
 	Gosub, cxBokaKontrakt
-	
 return
 
 cxBokaKontrakt:
@@ -1527,7 +1633,7 @@ cxBokaKontrakt:
 	<cx:costPerThousand class="currency" currencyCode="SEK" value="%CPM%"/>
 	</cx:cpmContract>
 	)
-	if (Type = "CPC" or Type = "Retarget" or Type = "CPC Plugg") ; Om det är en CPC-produkt
+	if (Type = "CPC" or Type = "Retarget" or Type = "Plugg") ; Om det är en CPC-produkt
 	{
 		XML =
 		(
@@ -1819,7 +1925,7 @@ cxBokaSiteTargeting:
 			run, https://cxad.cxense.com/adv/campaign/%kampanjID%/overview
 		IfMsgBox, No
 			return
-
+	annonsCheck = 1
 	gosub, cxSplashOff
 return
 
@@ -1876,7 +1982,26 @@ Rapport:
 		run, http://rapport.ntm-digital.se/advertiser/%kundID%/campaign/%campaignID%/
 Return
 
-oppnaCxense:
+oppnaRapportFork:
+	if (listCount > 1)
+	{
+		goto, oppnaFleraRapport
+	} else {
+		goto, Rapport
+	}
+Return
+
+oppnaCXfork:
+	if (listCount > 1)
+	{
+		goto, oppnaFleraCX
+	} else {
+		goto, oppnaCX
+	}
+Return
+
+
+oppnaCX:
 	order = 1
 	bokning = 0
 	gosub, cxGetAdId
@@ -2005,6 +2130,115 @@ lager:
 	FileEncoding
 	Msgbox, XML-fil genererad
 return
+
+
+
+
+oppnaFleraCX:
+	antalAnnonser := listCount
+	aktuellAnnons = 1
+	Msgbox, 4, Öppna flera annonser, Öppna %listCount% annonser i Cxense?
+	IFmsgbox, yes
+		{
+		while aktuellAnnons <= antalAnnonser
+		{
+			listRow := getListRow%aktuellAnnons%
+			Stringsplit, kolumn, listRow, `t
+
+			mlStartdatum := kolumn%iniStart%
+			mlStoppdatum := kolumn%iniStopp%
+			mlExponeringar := kolumn%iniExponeringar%
+			mlKundnr := kolumn%iniKundnr%
+			mlKundnamn := kolumn%iniKundnamn%
+			mlSaljare := kolumn%iniSaljare%
+			mlProdukt := kolumn%iniProdukt%
+			mlOrdernummer = %kolumn1%
+
+			gosub, oppnaCX
+			sleep, 500
+			aktuellAnnons++
+		}
+	}
+return
+
+
+oppnaFleraRapport:
+	antalAnnonser := listCount
+	aktuellAnnons = 1
+	Msgbox, 4, Öppna flera annonser, Öppna %listCount% annonser i Rapportverktyget?
+	IFmsgbox, yes
+		{
+		while aktuellAnnons <= antalAnnonser
+		{
+			listRow := getListRow%aktuellAnnons%
+			Stringsplit, kolumn, listRow, `t
+
+			mlStartdatum := kolumn%iniStart%
+			mlStoppdatum := kolumn%iniStopp%
+			mlExponeringar := kolumn%iniExponeringar%
+			mlKundnr := kolumn%iniKundnr%
+			mlKundnamn := kolumn%iniKundnamn%
+			mlSaljare := kolumn%iniSaljare%
+			mlProdukt := kolumn%iniProdukt%
+			mlOrdernummer = %kolumn1%
+
+			gosub, Rapport
+			sleep, 500
+			aktuellAnnons++
+		}
+	}
+return
+
+bokaFlera:
+	antalAnnonser := listCount
+	aktuellAnnons = 1
+	Msgbox, 4, Boka flera annonser, Boka %listCount% annonser i Cxense?
+	IFmsgbox, yes
+	{
+		while aktuellAnnons <= antalAnnonser
+		{
+			listRow := getListRow%aktuellAnnons%
+			Stringsplit, kolumn, listRow, `t
+
+			mlStartdatum := kolumn%iniStart%
+			mlStoppdatum := kolumn%iniStopp%
+			mlExponeringar := kolumn%iniExponeringar%
+			mlKundnr := kolumn%iniKundnr%
+			mlKundnamn := kolumn%iniKundnamn%
+			mlSaljare := kolumn%iniSaljare%
+			mlProdukt := kolumn%iniProdukt%
+			mlOrdernummer = %kolumn1%
+			mlEnhet := kolumn%iniEnhet%
+
+			StringSplit, prodArray, mlProdukt , %A_Space%
+			mlTidning = %prodArray1%
+			mlSite = %prodArray2%
+
+			if (mlSite = "gotland.net")
+			{
+				mlTidning = GN
+			}
+			if (mlSite = "nt.se")
+			{
+				mlTidning = NTFB
+			}
+
+			annonsCheck = 0
+			gosub, cxBokning
+			aktuellAnnons++
+			while annonsCheck = 0
+			{
+				sleep, 1000
+			}
+			
+		}
+		Sleep, 1000
+		Msgbox, %listCount% annonser inbokade!
+	}
+return
+
+
+
 ;--------------
 ;	Statusar
 ;--------------
@@ -2182,5 +2416,38 @@ noteReset:
 	MsgBox, Noteringsfönstret återställt.
 return
 
+citat:
+FileDelete, %A_MyDocuments%\MedialinkPlus\citat.txt
+UrlDownloadToFile, http://citatet.se, %A_MyDocuments%\MedialinkPlus\citat.txt
+Sleep, 1000
+FileRead, citatBlob, *P65001 %A_MyDocuments%\MedialinkPlus\citat.txt
+StringReplace, citatBlob, citatBlob, &#8221`;, ”, A
+StringReplace, citatBlob, citatBlob, ”, £, A
+StringReplace, citatBlob, citatBlob, &#8211`;, -, A
+
+StringSplit, citatArray, citatBlob , £
+citat = %citatArray2%
+
+StringReplace, citatBlob, citatBlob, <span>, €, A
+StringReplace, citatBlob, citatBlob, </span>, €, A
+StringSplit, citatArray, citatBlob , €
+author = %citatArray2%
+return
+
+setCitat:
+	mlNewTitle = %mlTitle%     ::     %citat% - %author%
+	WinSetTitle, Atex MediaLink,,%mlNewTitle%
+return
+
+cycleCitat:
+	gosub, citat
+	gosub, setCitat
+return
+
+^!k::
+	gosub, getAnvnamn
+	msgbox, %Anvandare%
+return
 
 #include cxmini.ahk
+#include weblink.ahk
